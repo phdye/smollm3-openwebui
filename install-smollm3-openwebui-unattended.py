@@ -502,6 +502,65 @@ def ensure_openwebui_pip():
             logger.error(f"! Failed to start Open WebUI (pip): {e}")
 
 # -----------------------------
+# FFmpeg (required for audio/video features like STT/TTS)
+# -----------------------------
+
+def winget_available() -> bool:
+    return shutil.which("winget") is not None
+
+
+def ffmpeg_in_path() -> bool:
+    return shutil.which("ffmpeg") is not None
+
+
+def ensure_ffmpeg_on_host():
+    """Ensure ffmpeg is installed on the Windows host (pip/venv mode)."""
+    if ffmpeg_in_path():
+        run(["ffmpeg", "-version"], check=False)
+        logger.info("- ffmpeg already available on PATH.")
+        return
+
+    if winget_available():
+        logger.info("- Installing ffmpeg via winget (user scope, silent)...")
+        # Accept agreements to keep install unattended; scope=user avoids elevation.
+        run([
+            "winget","install","--id=Gyan.FFmpeg","-e",
+            "--accept-package-agreements","--accept-source-agreements",
+            "--scope","user","--silent"
+        ], check=False)
+
+        # Re-check PATH
+        if ffmpeg_in_path():
+            run(["ffmpeg","-version"], check=False)
+            logger.info("- ffmpeg installed and found in PATH.")
+            return
+
+        # Common location from Gyan.FFmpeg package
+        candidate = Path("C:/ffmpeg/bin/ffmpeg.exe")
+        if candidate.exists():
+            add_to_user_path(candidate.parent)
+            logger.info(f"- Added {candidate.parent} to PATH; new shells will see ffmpeg.")
+            return
+
+    logger.warning("! ffmpeg still not found. You can install it manually, e.g.: 'winget install --id=Gyan.FFmpeg -e'.")
+
+
+def ensure_ffmpeg_in_container(container_name: str = "open-webui"):
+    """Ensure ffmpeg exists inside the Open WebUI Docker container.
+    Tries apt, apk, dnf (depends on base image). Safe to re-run.
+    """
+    logger.info(f"- Ensuring ffmpeg is present inside Docker container '{container_name}' ...")
+    run([
+        "docker","exec",container_name,"sh","-lc",
+        # If ffmpeg exists, print version. Otherwise try package managers.
+        "command -v ffmpeg >/dev/null 2>&1 && ffmpeg -version | head -n1 || "
+        "( (command -v apt-get >/dev/null 2>&1 && apt-get update && apt-get install -y ffmpeg) || "
+        "  (command -v apk >/dev/null 2>&1 && apk add --no-cache ffmpeg) || "
+        "  (command -v dnf >/dev/null 2>&1 && dnf install -y ffmpeg) || "
+        "  echo 'No known package manager found; ffmpeg not installed.' )"
+    ], check=False)
+
+# -----------------------------
 # Main
 # -----------------------------
 
@@ -518,11 +577,13 @@ def main():
 
     # 2) SmolLM3 model
     ensure_smollm3_model()
-
-    # 3) Open WebUI
-    if docker_available():
+    # 3) Open WebUI + FFmpeg
+    use_docker = docker_available()
+    if use_docker:
         ensure_openwebui_docker()
+        ensure_ffmpeg_in_container("open-webui")
     else:
+        ensure_ffmpeg_on_host()
         ensure_openwebui_pip()
 
     logger.info("")
