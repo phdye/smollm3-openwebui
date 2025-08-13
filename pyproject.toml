@@ -1,0 +1,13 @@
+[project]
+name = "smollm3-openwebui"
+version = "0.1.0"
+description = "Unattended installer for SmolLM3 Open-WebUI stack"
+authors = [{name = "SmolLM3"}]
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
