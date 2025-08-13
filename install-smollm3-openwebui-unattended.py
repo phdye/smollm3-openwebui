@@ -148,6 +148,11 @@ def get_startup_folder():
     return (Path(appdata) / r"Microsoft\Windows\Start Menu\Programs\Startup") if appdata else None
 
 
+def get_programs_folder():
+    appdata = os.environ.get("APPDATA")
+    return (Path(appdata) / r"Microsoft\Windows\Start Menu\Programs") if appdata else None
+
+
 def create_startup_cmd(name: str, command: str, workdir: Path=None):
     sf = get_startup_folder()
     if not sf:
@@ -161,6 +166,25 @@ def create_startup_cmd(name: str, command: str, workdir: Path=None):
         f.write(command + "\n")
     logger.info(f"- Created Startup .cmd: {wrapper}")
     return wrapper
+
+
+def create_uninstall_shortcut():
+    pf = get_programs_folder()
+    if not pf:
+        return None
+    wrapper = pf / "Uninstall SmolLM3 Open-WebUI.cmd"
+    script = Path(__file__).resolve()
+    try:
+        wrapper.parent.mkdir(parents=True, exist_ok=True)
+        with open(wrapper, "w", encoding="utf-8") as f:
+            f.write("@echo off\n")
+            f.write(f'cd /d "{script.parent}"\n')
+            f.write(f'"{sys.executable}" "{script}" --uninstall\n')
+        logger.info(f"- Created Start Menu uninstall shortcut: {wrapper}")
+        return wrapper
+    except Exception as e:
+        logger.warning(f"Could not create uninstall shortcut: {e}")
+        return None
 
 
 def try_create_logon_task(name: str, command: str, workdir: Path=None):
@@ -501,6 +525,49 @@ def ensure_openwebui_pip():
         except Exception as e:
             logger.error(f"! Failed to start Open WebUI (pip): {e}")
 
+
+def uninstall():
+    log_file = setup_logging()
+    logger.info("Uninstalling SmolLM3 Open-WebUI stack ...")
+
+    # Remove scheduled tasks (ignore errors)
+    for task in ["Ollama Serve", "Open WebUI (Docker)", "Open WebUI"]:
+        try:
+            run(["schtasks", "/Delete", "/TN", task, "/F"], check=False)
+        except Exception as e:
+            logger.warning(f"Could not delete task '{task}': {e}")
+
+    # Remove Startup .cmd files
+    sf = get_startup_folder()
+    if sf:
+        for name in ["Ollama Serve", "Open WebUI (Docker)", "Open WebUI"]:
+            p = sf / f"{name.replace(' ','_')}.cmd"
+            if p.exists():
+                try:
+                    p.unlink()
+                    logger.info(f"- Removed Startup .cmd: {p}")
+                except Exception:
+                    pass
+
+    # Remove uninstall shortcut
+    pf = get_programs_folder()
+    if pf:
+        p = pf / "Uninstall SmolLM3 Open-WebUI.cmd"
+        if p.exists():
+            try:
+                p.unlink()
+                logger.info(f"- Removed uninstall shortcut: {p}")
+            except Exception:
+                pass
+
+    # Remove install directory
+    if BASE.exists():
+        shutil.rmtree(BASE, ignore_errors=True)
+        logger.info(f"- Removed {BASE}")
+
+    logger.info(f"- Log saved to: {log_file}")
+    logger.info("✅ Uninstall complete.")
+
 # -----------------------------
 # Main
 # -----------------------------
@@ -511,6 +578,8 @@ def main():
 
     for p in [BASE, DOWNLOADS_DIR, OLLAMA_DIR, OLLAMA_MODELS_DIR, OPENWEBUI_DIR]:
         p.mkdir(parents=True, exist_ok=True)
+
+    create_uninstall_shortcut()
 
     # 1) Ollama
     ensure_ollama_installed()
@@ -538,4 +607,7 @@ if __name__ == "__main__":
     if platform.system().lower() != "windows":
         print("This script is intended for Windows 11.")
         sys.exit(1)
-    main()
+    if "--uninstall" in sys.argv:
+        uninstall()
+    else:
+        main()
