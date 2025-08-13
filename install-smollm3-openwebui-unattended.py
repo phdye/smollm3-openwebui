@@ -431,7 +431,8 @@ def ensure_smollm3_model():
     binp = str(OLLAMA_BIN if OLLAMA_BIN.exists() else (shutil.which("ollama") or OLLAMA_BIN))
     logger.info(f"- Importing model into Ollama as '{MODEL_NAME}' ...")
     try:
-        run([binp, "create", MODEL_NAME, "-f", str(modelfile)], check=True)
+        env = {**os.environ, "OLLAMA_MODELS": str(OLLAMA_MODELS_DIR)}
+        run([binp, "create", MODEL_NAME, "-f", str(modelfile)], check=True, env=env)
         logger.info("- Model imported.")
     except subprocess.CalledProcessError as e:
         logger.error(f"! Failed to create model: {e.output}")
