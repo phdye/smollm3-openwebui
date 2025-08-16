@@ -185,6 +185,74 @@ def try_create_logon_task(name: str, command: str, workdir: Path=None):
         return None
 
 
+def get_programs_folder():
+    appdata = os.environ.get("APPDATA")
+    return (Path(appdata) / r"Microsoft\Windows\Start Menu\Programs") if appdata else None
+
+
+def create_cmd_script(path: Path, command: str, workdir: Path=None):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("@echo off\n")
+        if workdir:
+            f.write(f'cd /d "{workdir}"\n')
+        f.write(command + "\n")
+    logger.info(f"- Created script: {path}")
+
+
+def create_url_shortcut(path: Path, url: str):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("[InternetShortcut]\n")
+        f.write(f"URL={url}\n")
+    logger.info(f"- Created URL link: {path}")
+
+
+def create_uninstall_script() -> Path:
+    script = BASE / "uninstall-smollm3-openwebui.cmd"
+    with open(script, "w", encoding="utf-8") as f:
+        f.write("@echo off\n")
+        f.write("echo This will remove SmolLM3 - Open WebUI and downloaded data.\n")
+        f.write("echo Press Ctrl+C to abort or any key to continue...\n")
+        f.write("pause\n")
+        f.write('schtasks /Delete /TN "Open WebUI (Docker)" /F >nul 2>&1\n')
+        f.write('schtasks /Delete /TN "Open WebUI" /F >nul 2>&1\n')
+        f.write('schtasks /Delete /TN "Ollama Serve" /F >nul 2>&1\n')
+        f.write(f'rd /s /q "{BASE}"\n')
+        f.write("echo Done.\n")
+        f.write("pause\n")
+    logger.info(f"- Created uninstall script: {script}")
+    return script
+
+
+def create_start_menu_entries(use_docker: bool):
+    programs = get_programs_folder()
+    if not programs:
+        return
+    folder = programs / "SmolLM3 - Open WebUI"
+    folder.mkdir(parents=True, exist_ok=True)
+
+    if use_docker:
+        create_cmd_script(folder / "Start Open WebUI.cmd", "docker start open-webui")
+        create_cmd_script(folder / "Stop Open WebUI.cmd", "docker stop open-webui")
+    else:
+        ow_exe = OPENWEBUI_VENV / "Scripts" / "open-webui.exe"
+        start_cmd = f'"{ow_exe}" serve --host 127.0.0.1 --port {OPENWEBUI_PORT}'
+        create_cmd_script(folder / "Start Open WebUI.cmd", start_cmd, workdir=OPENWEBUI_DIR)
+        create_cmd_script(folder / "Stop Open WebUI.cmd", 'taskkill /IM "open-webui.exe" /F')
+
+    create_cmd_script(folder / "Start Ollama.cmd", f'"{OLLAMA_BIN}" serve', workdir=OLLAMA_DIR)
+    create_cmd_script(folder / "Stop Ollama.cmd", 'taskkill /IM "ollama.exe" /F')
+
+    create_url_shortcut(folder / "Open WebUI.url", f"http://localhost:{OPENWEBUI_PORT}/")
+    create_url_shortcut(folder / "Ollama API.url", f"http://localhost:{OLLAMA_PORT}/")
+
+    create_cmd_script(folder / "View Logs.cmd", f'explorer "{LOGS_DIR}"')
+
+    uninstall = create_uninstall_script()
+    shutil.copy(uninstall, folder / uninstall.name)
+
+
 def port_open(host: str, port: int, timeout=1.5) -> bool:
     try:
         with socket.create_connection((host, port), timeout=timeout):
@@ -586,6 +654,8 @@ def main():
     else:
         ensure_ffmpeg_on_host()
         ensure_openwebui_pip()
+
+    create_start_menu_entries(use_docker)
 
     logger.info("")
     logger.info("✅ All set!")
