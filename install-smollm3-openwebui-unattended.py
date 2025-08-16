@@ -494,7 +494,11 @@ def ensure_openwebui_wsl(distro: str):
         )
 
     # Install Open WebUI for the user
-    wsl("python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui")
+    wsl(
+        "python3 -m pip show open-webui >/dev/null 2>&1 || "
+        "python3 -m pip install --user open-webui || "
+        "python3 -m pip install --user --break-system-packages open-webui"
+    )
 
     # Ensure ffmpeg (root only when missing)
     res = wsl("command -v ffmpeg >/dev/null 2>&1", check=False)
