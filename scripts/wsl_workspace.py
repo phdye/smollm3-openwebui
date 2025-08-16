@@ -78,10 +78,35 @@ def suspend_workspace(distro: str) -> None:
 
 
 def run_tests(distro: str, repo: str) -> None:
-    """Run pytest inside the WSL distro."""
+    """Run pytest inside the WSL distro streaming output as it executes."""
 
     _ensure_dev_env(distro)
-    _run_in_wsl(distro, repo, "pytest")
+    wsl_repo = _to_wsl_path(repo)
+    cmd = [
+        "wsl",
+        "-d",
+        distro,
+        "bash",
+        "-lc",
+        f"cd '{wsl_repo}' && pytest -vv",
+    ]
+    # Stream logs line-by-line so failures appear in real time.
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        if any(pat in line for pat in ("FAILED", "ERROR", "Traceback", "E   ")):
+            # Highlight failure lines and stack traces in red.
+            print(f"\033[91m{line.rstrip()}\033[0m")
+        else:
+            print(line, end="")
+    proc.wait()
+    if proc.returncode:
+        raise subprocess.CalledProcessError(proc.returncode, cmd)
 
 
 def run_lint(distro: str, repo: str) -> None:
