@@ -2,7 +2,7 @@
 
 This plan describes stepwise features to transform the interactive environment to support persistent, preconfigured, collaborative development sessions.
 
-**Current status:** Phases&nbsp;1–3 and the real‑time testing portions of Phase&nbsp;5 are implemented in `scripts/wsl_workspace.py`.  Phases&nbsp;4, 6, 7, and 8 are still future work.
+**Current status:** Phases&nbsp;1–4 and the real‑time testing portions of Phase&nbsp;5 are implemented in `scripts/wsl_workspace.py`.  Phases&nbsp;6, 7, and 8 are still future work.
 
 ## Phase 1: Persistent Workspace
 - [x] Set up connection to a WSL distro that remains active during chat session.
@@ -41,10 +41,13 @@ GitHub links, and the special `$` action runs arbitrary shell commands rooted
 at the repo path.
 
 ## Phase 4: Incremental Environment Setup
-- [ ] Cache dependency installations per repo.
-- [ ] Provide snapshot/rollback features to revert to prior state.
+- [x] Cache dependency installations per repo.
+- [x] Provide snapshot/rollback features to revert to prior state.
 
-*Not yet implemented.*
+`scripts/wsl_workspace.py` caches dependency installation by writing a marker
+file in the repository after packages are installed.  New `snapshot` and
+`rollback` actions create and restore tarball snapshots of the repository so
+work can be reverted to the previous state.
 
 ## Phase 5: Real-time Testing & Feedback
 - [x] Execute tests asynchronously and stream logs back to chat.
