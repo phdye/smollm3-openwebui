@@ -2,7 +2,7 @@
 
 This plan describes stepwise features to transform the interactive environment to support persistent, preconfigured, collaborative development sessions.
 
-**Current status:** Phases&nbsp;1–4 and the real‑time testing portions of Phase&nbsp;5 are implemented in `scripts/wsl_workspace.py`.  Phases&nbsp;6, 7, and 8 are still future work.
+**Current status:** Phases&nbsp;1–5 are implemented in `scripts/wsl_workspace.py`.  Phases&nbsp;6, 7, and 8 are still future work.
 
 ## Phase 1: Persistent Workspace
 - [x] Set up connection to a WSL distro that remains active during chat session.
@@ -53,8 +53,9 @@ work can be reverted to the previous state.
 - [x] Execute tests asynchronously and stream logs back to chat.
 - [x] Highlight failing lines and stack traces in context.
 
-`scripts/wsl_workspace.py` streams `pytest` output as tests run and
-emphasizes failing lines and stack traces in red for immediate context.
+`scripts/wsl_workspace.py` uses `asyncio` to stream `pytest` output in real
+time and emphasizes failing lines and stack traces in red for immediate
+context.
 
 ## Phase 6: Collaborative Features
 - [ ] Allow multiple users to attach to same environment.
