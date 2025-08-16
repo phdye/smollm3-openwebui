@@ -2,7 +2,7 @@
 
 This plan describes stepwise features to transform the interactive environment to support persistent, preconfigured, collaborative development sessions.
 
-**Current status:** Phases&nbsp;1–7 are implemented in `scripts/wsl_workspace.py`.  Phase&nbsp;8 is still future work.
+**Current status:** Phases&nbsp;1–8 are implemented in `scripts/wsl_workspace.py`.
 
 ## Phase 1: Persistent Workspace
 - [x] Set up connection to a WSL distro that remains active during chat session.
@@ -76,9 +76,14 @@ the template (for example `run-tests` or `start-devserver`) can be invoked like
 any other action and execute inside the WSL workspace.
 
 ## Phase 8: Security & Resource Controls
-- [ ] Sandbox each session with limited network and compute quotas.
-- [ ] Expose resource monitoring commands for CPU/memory.
-- [ ] Implement auto-timeouts for idle sessions.
+- [x] Sandbox each session with limited network and compute quotas.
+- [x] Expose resource monitoring commands for CPU/memory.
+- [x] Implement auto-timeouts for idle sessions.
+
+`wsl_workspace.py` now launches shells inside an isolated network namespace with
+CPU and memory limits via `prlimit`. An `resources` action reports current
+usage, and shells automatically terminate after a period of inactivity using
+the `TMOUT` mechanism.
 
 ## Maintenance
 - Keep base images updated with patches.
