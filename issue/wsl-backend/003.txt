@@ -1,0 +1,58 @@
+Script started on 2025-08-16 18:40:33-04:00 [COMMAND="set -x && winpy install-smollm3-openwebui-unattended.py --wsl Ubuntu-24.04" TERM="screen.xterm-256color" TTY="/dev/pty11" COLUMNS="121" LINES="40"]
++ winpy install-smollm3-openwebui-unattended.py --wsl Ubuntu-24.04
+2025-08-16 23:40:34,639 INFO Logging to: C:\Users\phdyex\AppData\Local\smollm3_stack\logs\install-20250816-234034.log
+2025-08-16 23:40:34,639 INFO Install root: C:\Users\phdyex\AppData\Local\smollm3_stack
+2025-08-16 23:40:34,639 INFO - Ollama already present.
+2025-08-16 23:40:34,654 INFO - Ollama API already up.
+2025-08-16 23:40:34,655 INFO $ schtasks /Create /TN Ollama Serve /TR "C:\Users\phdyex\AppData\Local\smollm3_stack\ollama_serve.cmd" /SC ONLOGON /F
+2025-08-16 23:40:34,722 INFO SUCCESS: The scheduled task "Ollama Serve" has successfully been created.
+2025-08-16 23:40:34,726 INFO - Created/updated scheduled task: Ollama Serve
+2025-08-16 23:40:34,726 INFO - Waiting for HTTP: http://127.0.0.1:11434/api/tags
+2025-08-16 23:40:35,096 INFO - HTTP ready: http://127.0.0.1:11434/api/tags (status 200)
+2025-08-16 23:40:35,444 INFO - SmolLM3-Q4_K_M.gguf already complete; skipping download.
+2025-08-16 23:40:35,444 INFO - Modelfile already up to date.
+2025-08-16 23:40:35,451 INFO - Ollama model 'smollm3-local' already exists; skipping create.
+2025-08-16 23:40:35,521 INFO - Ensuring Open WebUI inside WSL distro 'Ubuntu-24.04' ...
+2025-08-16 23:40:35,521 INFO $ wsl -d Ubuntu-24.04 sh -lc python3 -m pip --version >/dev/null 2>&1
+2025-08-16 23:40:36,039 INFO $ wsl -d Ubuntu-24.04 sh -lc python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui
+2025-08-16 23:40:37,029 INFO error: externally-managed-environment
+2025-08-16 23:40:37,029 INFO 
+2025-08-16 23:40:37,029 INFO × This environment is externally managed
+2025-08-16 23:40:37,029 INFO ╰─> To install Python packages system-wide, try apt install
+2025-08-16 23:40:37,029 INFO     python3-xyz, where xyz is the package you are trying to
+2025-08-16 23:40:37,029 INFO     install.
+2025-08-16 23:40:37,031 INFO  
+2025-08-16 23:40:37,031 INFO     If you wish to install a non-Debian-packaged Python package,
+2025-08-16 23:40:37,031 INFO     create a virtual environment using python3 -m venv path/to/venv.
+2025-08-16 23:40:37,031 INFO     Then use path/to/venv/bin/python and path/to/venv/bin/pip. Make
+2025-08-16 23:40:37,032 INFO     sure you have python3-full installed.
+2025-08-16 23:40:37,032 INFO  
+2025-08-16 23:40:37,032 INFO     If you wish to install a non-Debian packaged Python application,
+2025-08-16 23:40:37,032 INFO     it may be easiest to use pipx install xyz, which will manage a
+2025-08-16 23:40:37,032 INFO     virtual environment for you. Make sure you have pipx installed.
+2025-08-16 23:40:37,032 INFO  
+2025-08-16 23:40:37,032 INFO     See /usr/share/doc/python3.12/README.venv for more information.
+2025-08-16 23:40:37,032 INFO 
+2025-08-16 23:40:37,032 INFO note: If you believe this is a mistake, please contact your Python installation or OS distribution provider. You can override this, at the risk of breaking your Python installation or OS, by passing --break-system-packages.
+2025-08-16 23:40:37,032 INFO hint: See PEP 668 for the detailed specification.
+Traceback (most recent call last):
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 680, in <m
+module>
+    main()
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 657, in ma
+ain
+    ensure_openwebui_wsl(args.wsl)
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 497, in en
+nsure_openwebui_wsl
+    wsl("python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui")
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 480, in ws
+sl
+    return run(base, check=check)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 136, in ru
+un
+    raise subprocess.CalledProcessError(ret, cmd, output=tail)
+subprocess.CalledProcessError: Command '['wsl', '-d', 'Ubuntu-24.04', 'sh', '-lc', 'python3 -m pip show open-webui >/dev/
+/null 2>&1 || python3 -m pip install --user open-webui']' returned non-zero exit status 1.
+Script done on 2025-08-16 18:40:37-04:00 [COMMAND_EXIT_CODE="1"]
+
