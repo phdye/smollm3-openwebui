@@ -22,8 +22,11 @@ The script will download and configure Ollama, the SmolLM3-3B model, Open WebUI,
 - Open WebUI will be available at `http://localhost:3000`
 - The Ollama API will run at `http://localhost:11434`
 
-## 5. Logs
+## 5. Start Menu shortcuts
+The installer creates a **SmolLM3 - Open WebUI** folder in the Windows Start Menu. It includes shortcuts to start or stop Open WebUI and Ollama, open the web interfaces, view logs, and uninstall the stack.
+
+## 6. Logs
 Detailed logs are written to `%LOCALAPPDATA%\smollm3_stack\logs`. Each run creates a timestamped log file and updates `latest-log.txt` with the most recent path.
 
-## 6. Re-running
+## 7. Re-running
 You can re-run the script at any time. It detects completed steps and skips them, making the process idempotent.
