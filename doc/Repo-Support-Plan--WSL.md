@@ -2,7 +2,7 @@
 
 This plan describes stepwise features to transform the interactive environment to support persistent, preconfigured, collaborative development sessions.
 
-**Current status:** only Phases&nbsp;1 and&nbsp;2 and the real‑time testing portions of Phase&nbsp;5 are implemented in `scripts/wsl_workspace.py`.  Phases&nbsp;3, 4, 6, 7, and 8 are still future work.
+**Current status:** Phases&nbsp;1–3 and the real‑time testing portions of Phase&nbsp;5 are implemented in `scripts/wsl_workspace.py`.  Phases&nbsp;4, 6, 7, and 8 are still future work.
 
 ## Phase 1: Persistent Workspace
 - [x] Set up connection to a WSL distro that remains active during chat session.
@@ -28,12 +28,17 @@ instance is ready to lint, test, or build.  New actions `test`, `lint`, and
 `build` execute the corresponding commands inside the repository directory.
 
 ## Phase 3: Integrated Git Operations
-- [ ] Implement chat commands for `git pull`, `git status`, `git commit`, and `git push`.
-- [ ] Show diff previews and commit message suggestions.
-- [ ] Link to GitHub Issues and PRs.
-- [ ] Implement chat command runner '$' to run any shell commands in the repo.
+- [x] Implement chat commands for `git pull`, `git status`, `git commit`, and `git push`.
+- [x] Show diff previews and commit message suggestions.
+- [x] Link to GitHub Issues and PRs.
+- [x] Implement chat command runner '$' to run any shell commands in the repo.
 
-*Not yet implemented.*
+`scripts/wsl_workspace.py` exposes `pull`, `status`, `commit`, and `push` actions
+that execute within the repository and stream their output back to chat. The
+`commit` action previews diffs and proposes commit messages derived from the
+changed files.  Commands `issue <id>` and `pr <id>` open the corresponding
+GitHub links, and the special `$` action runs arbitrary shell commands rooted
+at the repo path.
 
 ## Phase 4: Incremental Environment Setup
 - [ ] Cache dependency installations per repo.

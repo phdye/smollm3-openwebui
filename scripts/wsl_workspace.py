@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Utilities for managing a persistent WSL workspace for smollm3-openwebui.
 
-This script helps keep a WSL distribution active in the repository directory
-and exposes commands to suspend or resume the environment.  Phase 2 expands the
-toolchain setup so that common development languages and tooling are
-preinstalled, enabling immediate linting, building and testing.
+This script keeps a WSL distribution active in the repository directory and
+exposes chat-oriented commands for common development tasks.  Phases 1 and 2
+cover environment setup, while Phase 3 adds integrated Git operations and
+helpers for linking GitHub issues/PRs or running arbitrary shell commands.
 """
 
 from __future__ import annotations
@@ -129,13 +129,143 @@ def run_build(distro: str, repo: str) -> None:
     _run_in_wsl(distro, repo, build_cmd)
 
 
+def git_pull(distro: str, repo: str) -> None:
+    """Run `git pull` inside the repository."""
+
+    _ensure_dev_env(distro)
+    _run_in_wsl(distro, repo, "git pull --ff-only")
+
+
+def git_status(distro: str, repo: str) -> None:
+    """Show `git status` for the repository."""
+
+    _ensure_dev_env(distro)
+    _run_in_wsl(distro, repo, "git status")
+
+
+def _suggest_commit_message(distro: str, repo: str) -> str:
+    """Generate a simple commit message based on changed files."""
+
+    wsl_repo = _to_wsl_path(repo)
+    result = subprocess.run(
+        ["wsl", "-d", distro, "bash", "-lc", f"cd '{wsl_repo}' && git status --short"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    files = [line.split(maxsplit=1)[-1] for line in result.stdout.strip().splitlines()]
+    if not files:
+        return "chore: update repository"
+    if len(files) == 1:
+        return f"chore: update {files[0]}"
+    return f"chore: update {files[0]} and {len(files) - 1} other files"
+
+
+def git_commit(distro: str, repo: str, message: str | None) -> None:
+    """Commit tracked changes with diff preview and suggested message."""
+
+    _ensure_dev_env(distro)
+    wsl_repo = _to_wsl_path(repo)
+    subprocess.run(
+        [
+            "wsl",
+            "-d",
+            distro,
+            "bash",
+            "-lc",
+            f"cd '{wsl_repo}' && git --no-pager status && git --no-pager diff",
+        ],
+        check=True,
+    )
+    if not message:
+        message = _suggest_commit_message(distro, repo)
+        print(f"Using commit message: {message}")
+    _run_in_wsl(distro, repo, f"git commit -am \"{message}\"")
+
+
+def git_push(distro: str, repo: str) -> None:
+    """Run `git push` for the repository."""
+
+    _ensure_dev_env(distro)
+    _run_in_wsl(distro, repo, "git push")
+
+
+def _get_github_url(distro: str, repo: str) -> str:
+    """Return the base HTTPS GitHub URL for the repository."""
+
+    wsl_repo = _to_wsl_path(repo)
+    result = subprocess.run(
+        ["wsl", "-d", distro, "bash", "-lc", f"cd '{wsl_repo}' && git config --get remote.origin.url"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    url = result.stdout.strip()
+    if url.endswith(".git"):
+        url = url[:-4]
+    if url.startswith("git@github.com:"):
+        url = url.replace("git@github.com:", "https://github.com/")
+    return url
+
+
+def _open_github_link(distro: str, url: str) -> None:
+    """Open a GitHub URL using `wslview` if available."""
+
+    subprocess.run(
+        [
+            "wsl",
+            "-d",
+            distro,
+            "bash",
+            "-lc",
+            f"command -v wslview >/dev/null && wslview '{url}' || echo '{url}'",
+        ],
+        check=True,
+    )
+
+
+def open_issue(distro: str, repo: str, issue: str) -> None:
+    """Open the GitHub issue corresponding to the given number."""
+
+    base = _get_github_url(distro, repo)
+    _open_github_link(distro, f"{base}/issues/{issue}")
+
+
+def open_pr(distro: str, repo: str, pr: str) -> None:
+    """Open the GitHub pull request corresponding to the given number."""
+
+    base = _get_github_url(distro, repo)
+    _open_github_link(distro, f"{base}/pull/{pr}")
+
+
+def run_shell(distro: str, repo: str, command: str) -> None:
+    """Run an arbitrary shell command in the repository."""
+
+    _ensure_dev_env(distro)
+    _run_in_wsl(distro, repo, command)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Manage a persistent WSL workspace for smollm3-openwebui",
     )
     parser.add_argument(
         "action",
-        choices=["start", "resume", "suspend", "test", "lint", "build"],
+        choices=[
+            "start",
+            "resume",
+            "suspend",
+            "test",
+            "lint",
+            "build",
+            "pull",
+            "status",
+            "commit",
+            "push",
+            "issue",
+            "pr",
+            "$",
+        ],
         help="Action to perform",
     )
     parser.add_argument(
@@ -147,6 +277,19 @@ def main() -> None:
         "--repo",
         default=os.getcwd(),
         help="Path to the repository on the Windows side",
+    )
+    parser.add_argument(
+        "target",
+        nargs="?",
+        help="Issue/PR number for issue/pr actions",
+    )
+    parser.add_argument(
+        "--message",
+        help="Commit message for commit action",
+    )
+    parser.add_argument(
+        "--cmd",
+        help="Command to run for the '$' action",
     )
 
     args = parser.parse_args()
@@ -161,6 +304,26 @@ def main() -> None:
         run_lint(args.distro, args.repo)
     elif args.action == "build":
         run_build(args.distro, args.repo)
+    elif args.action == "pull":
+        git_pull(args.distro, args.repo)
+    elif args.action == "status":
+        git_status(args.distro, args.repo)
+    elif args.action == "commit":
+        git_commit(args.distro, args.repo, args.message)
+    elif args.action == "push":
+        git_push(args.distro, args.repo)
+    elif args.action == "issue":
+        if not args.target:
+            raise SystemExit("issue action requires an issue number")
+        open_issue(args.distro, args.repo, args.target)
+    elif args.action == "pr":
+        if not args.target:
+            raise SystemExit("pr action requires a pull request number")
+        open_pr(args.distro, args.repo, args.target)
+    elif args.action == "$":
+        if not args.cmd:
+            raise SystemExit("$ action requires --cmd")
+        run_shell(args.distro, args.repo, args.cmd)
 
 
 if __name__ == "__main__":
