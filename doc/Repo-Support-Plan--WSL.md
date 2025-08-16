@@ -2,7 +2,7 @@
 
 This plan describes stepwise features to transform the interactive environment to support persistent, preconfigured, collaborative development sessions.
 
-**Current status:** Phases&nbsp;1–6 are implemented in `scripts/wsl_workspace.py`.  Phases&nbsp;7 and 8 are still future work.
+**Current status:** Phases&nbsp;1–7 are implemented in `scripts/wsl_workspace.py`.  Phase&nbsp;8 is still future work.
 
 ## Phase 1: Persistent Workspace
 - [x] Set up connection to a WSL distro that remains active during chat session.
@@ -67,10 +67,13 @@ activity to `wsl_session.log`.  A new `follow` action tails this log so other
 users can watch commands and output in real time.
 
 ## Phase 7: Customizable Templates
-- [ ] Provide repo-specific environment templates.
-- [ ] Support starter scripts accessible via short chat commands (`!run-tests`, `!start-devserver`).
+- [x] Provide repo-specific environment templates.
+- [x] Support starter scripts accessible via short chat commands (`!run-tests`, `!start-devserver`).
 
-*Not yet implemented.*
+`wsl_workspace.py` now loads optional `wsl_template.json` in the repository to
+export environment variables and register custom actions.  Commands defined in
+the template (for example `run-tests` or `start-devserver`) can be invoked like
+any other action and execute inside the WSL workspace.
 
 ## Phase 8: Security & Resource Controls
 - [ ] Sandbox each session with limited network and compute quotas.
