@@ -3,10 +3,14 @@
 This plan describes stepwise features to transform the interactive environment to support persistent, preconfigured, collaborative development sessions.
 
 ## Phase 1: Persistent Workspace
-- Set up connection to a WSL distro that remains active during chat session.
-- Maintain path to repo folder.
-- Provide command to suspend/resume environment.
-- Deliver minimal environment for baseline editing and script execution.
+- [x] Set up connection to a WSL distro that remains active during chat session.
+- [x] Maintain path to repo folder.
+- [x] Provide command to suspend/resume environment.
+- [x] Deliver minimal environment for baseline editing and script execution.
+
+Implemented via `scripts/wsl_workspace.py`, which opens the selected WSL
+distribution in the repository directory, installs basic tools (Python and
+Git) if missing, and exposes `start`/`resume` and `suspend` actions.
 
 ## Phase 2: Preconfigured Tooling
 - Ensure that system has pre-installed at least these common languages :
