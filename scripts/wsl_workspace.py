@@ -50,6 +50,7 @@ def _ensure_dev_env(distro: str, repo: str) -> None:
         "rustc",
         "flake8",
         "pytest",
+        "tmux",
     ]
     pkg_str = " ".join(packages)
     wsl_repo = _to_wsl_path(repo)
@@ -63,21 +64,33 @@ def _ensure_dev_env(distro: str, repo: str) -> None:
     subprocess.run(["wsl", "-d", distro, "bash", "-lc", setup_cmd], check=True)
 
 
-def _run_in_wsl(distro: str, repo: str, cmd: str) -> None:
-    """Execute a command inside the WSL distro rooted at the repo path."""
+def _run_in_wsl(distro: str, repo: str, cmd: str, *, log: bool = True) -> None:
+    """Execute a command inside the WSL distro rooted at the repo path.
+
+    When ``log`` is true the command and its output are appended to
+    ``wsl_session.log`` in the repository so collaborators can review the
+    history or follow along in real time.
+    """
 
     wsl_repo = _to_wsl_path(repo)
-    subprocess.run(
-        ["wsl", "-d", distro, "bash", "-lc", f"cd '{wsl_repo}' && {cmd}"],
-        check=True,
-    )
+    if log:
+        safe = cmd.replace("'", "'\"'\"'")
+        full_cmd = (
+            f"cd '{wsl_repo}' && "
+            f"echo \"$(date -Iseconds) :: {safe}\" >> wsl_session.log && "
+            f"({cmd}) 2>&1 | tee -a wsl_session.log"
+        )
+    else:
+        full_cmd = f"cd '{wsl_repo}' && {cmd}"
+    subprocess.run(["wsl", "-d", distro, "bash", "-lc", full_cmd], check=True)
 
 
 def start_workspace(distro: str, repo: str) -> None:
     """Open a shell in the WSL distro rooted at the repo path."""
 
     _ensure_dev_env(distro, repo)
-    _run_in_wsl(distro, repo, "exec bash")
+    session_cmd = "tmux new-session -A -s smollm3 'script -f -q wsl_session.log bash'"
+    _run_in_wsl(distro, repo, session_cmd, log=False)
 
 
 def suspend_workspace(distro: str) -> None:
@@ -97,7 +110,11 @@ async def run_tests(distro: str, repo: str) -> None:
         distro,
         "bash",
         "-lc",
-        f"cd '{wsl_repo}' && pytest -vv",
+        (
+            f"cd '{wsl_repo}' && "
+            "echo \"$(date -Iseconds) :: pytest -vv\" >> wsl_session.log && "
+            "pytest -vv 2>&1 | tee -a wsl_session.log"
+        ),
     ]
     # Stream logs line-by-line so failures appear in real time.
     proc = await asyncio.create_subprocess_exec(
@@ -280,6 +297,24 @@ def run_shell(distro: str, repo: str, command: str) -> None:
     _run_in_wsl(distro, repo, command)
 
 
+def follow_log(distro: str, repo: str) -> None:
+    """Stream the shared session log in real time."""
+
+    _ensure_dev_env(distro, repo)
+    wsl_repo = _to_wsl_path(repo)
+    subprocess.run(
+        [
+            "wsl",
+            "-d",
+            distro,
+            "bash",
+            "-lc",
+            f"cd '{wsl_repo}' && tail -n +1 -f wsl_session.log",
+        ],
+        check=True,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Manage a persistent WSL workspace for smollm3-openwebui",
@@ -301,6 +336,7 @@ def main() -> None:
             "pr",
             "snapshot",
             "rollback",
+            "follow",
             "$",
         ],
         help="Action to perform",
@@ -361,6 +397,8 @@ def main() -> None:
         snapshot_workspace(args.distro, args.repo)
     elif args.action == "rollback":
         rollback_workspace(args.distro, args.repo)
+    elif args.action == "follow":
+        follow_log(args.distro, args.repo)
     elif args.action == "$":
         if not args.cmd:
             raise SystemExit("$ action requires --cmd")
