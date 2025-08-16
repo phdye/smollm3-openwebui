@@ -476,6 +476,13 @@ def ensure_openwebui_wsl(distro: str):
         return run(["wsl", "-d", distro, "sh", "-lc", cmd], check=check)
 
     logger.info(f"- Ensuring Open WebUI inside WSL distro '{distro}' ...")
+    wsl(
+        "python3 -m pip --version >/dev/null 2>&1 || "
+        "python3 -m ensurepip --upgrade >/dev/null 2>&1 || "
+        "(command -v apt >/dev/null 2>&1 && sudo apt update && sudo apt install -y python3-pip) || "
+        "(command -v apk >/dev/null 2>&1 && sudo apk add --no-cache py3-pip) || "
+        "(command -v dnf >/dev/null 2>&1 && sudo dnf install -y python3-pip)"
+    )
     wsl("python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui")
     wsl(
         f'command -v ffmpeg >/dev/null 2>&1 || '
