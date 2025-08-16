@@ -17,6 +17,10 @@ import subprocess
 from pathlib import Path
 
 DEFAULT_DISTRO = "Ubuntu"
+# Default resource limits for sandboxed sessions (Phase 8)
+CPU_TIME_LIMIT = 3600  # seconds of CPU time
+MEMORY_LIMIT = 1 * 1024 * 1024 * 1024  # 1 GiB in bytes
+IDLE_TIMEOUT = 3600  # seconds before shell auto-exit
 
 
 def _load_template(repo: str) -> dict:
@@ -99,16 +103,25 @@ def _run_in_wsl(distro: str, repo: str, cmd: str, *, log: bool = True) -> None:
     subprocess.run(["wsl", "-d", distro, "bash", "-lc", full_cmd], check=True)
 
 
-def start_workspace(distro: str, repo: str) -> None:
-    """Open a shell in the WSL distro rooted at the repo path."""
+def start_workspace(
+    distro: str,
+    repo: str,
+    *,
+    cpu_limit: int = CPU_TIME_LIMIT,
+    memory_limit: int = MEMORY_LIMIT,
+    idle_timeout: int = IDLE_TIMEOUT,
+) -> None:
+    """Open a sandboxed shell in the WSL distro rooted at the repo path."""
 
     _ensure_dev_env(distro, repo)
     template = _load_template(repo)
     env_exports = ""
     for key, value in template.get("env", {}).items():
         env_exports += f"export {key}='{value}' && "
+    # Auto-logout idle shells
+    env_exports += f"export TMOUT={idle_timeout} && "
     session_cmd = (
-        f"{env_exports}tmux new-session -A -s smollm3 'script -f -q wsl_session.log bash'"
+        f"{env_exports}unshare -n prlimit --cpu={cpu_limit} --as={memory_limit} -- tmux new-session -A -s smollm3 'script -f -q wsl_session.log bash'"
     )
     _run_in_wsl(distro, repo, session_cmd, log=False)
 
@@ -329,6 +342,17 @@ def run_shell(distro: str, repo: str, command: str) -> None:
     _run_in_wsl(distro, repo, command)
 
 
+def show_resources(distro: str, repo: str) -> None:
+    """Display current CPU and memory usage."""
+
+    _ensure_dev_env(distro, repo)
+    wsl_repo = _to_wsl_path(repo)
+    cmd = (
+        f"cd '{wsl_repo}' && echo 'CPU/memory usage:' && top -b -n1 | head -n5 && echo && free -h"
+    )
+    subprocess.run(["wsl", "-d", distro, "bash", "-lc", cmd], check=True)
+
+
 def follow_log(distro: str, repo: str) -> None:
     """Stream the shared session log in real time."""
 
@@ -414,6 +438,8 @@ def main() -> None:
         rollback_workspace(args.distro, args.repo)
     elif args.action == "follow":
         follow_log(args.distro, args.repo)
+    elif args.action == "resources":
+        show_resources(args.distro, args.repo)
     elif args.action == "$":
         if not args.cmd:
             raise SystemExit("$ action requires --cmd")
