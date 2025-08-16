@@ -53,9 +53,15 @@ workspace state, enabling quick resets between experimentation steps.
 emphasizes failing lines and stack traces in red for immediate context.
 
 ## Phase 6: Collaborative Features
-- Allow multiple users to attach to same environment.
-- Provide session log to track contributions.
-- Implement follow mode for real-time command/output sharing.
+- [x] Allow multiple users to attach to same environment.
+- [x] Provide session log to track contributions.
+- [x] Implement follow mode for real-time command/output sharing.
+
+`scripts/wsl_workspace.py` now supports collaborative sessions. Multiple users
+can attach to the same WSL instance, and every command is appended to a shared
+`session.log` with user attribution. A new `follow` action streams another
+participant's commands and output live so collaborators can observe activity in
+real time.
 
 ## Phase 7: Customizable Templates
 - Provide repo-specific environment templates.
