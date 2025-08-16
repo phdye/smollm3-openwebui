@@ -16,7 +16,7 @@
 # - Service-like autostart via Scheduled Task; on access denied, falls back to Startup-folder .cmd
 #
 # Usage:
-#   python install_smollm3_openwebui_unattended.py
+#   python install_smollm3_openwebui_unattended.py [--wsl <distro-name>]
 
 import os
 import sys
@@ -30,6 +30,7 @@ import socket
 import urllib.request
 import urllib.error
 import logging
+import argparse
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -424,6 +425,10 @@ def docker_available():
         return False
 
 
+def wsl_available() -> bool:
+    return shutil.which("wsl") is not None
+
+
 def ensure_openwebui_docker():
     def container_exists():
         cp = subprocess.run(["docker","ps","-a","--filter","name=open-webui","--format","{{.Names}}"],
@@ -451,6 +456,41 @@ def ensure_openwebui_docker():
         logger.info(f"- Open WebUI container created on port {OPENWEBUI_PORT}")
 
     try_create_logon_task("Open WebUI (Docker)", "docker start open-webui")
+
+
+def ensure_openwebui_wsl(distro: str):
+    if not wsl_available():
+        logger.error("wsl.exe not found; install the Windows Subsystem for Linux feature.")
+        sys.exit(1)
+    cp = subprocess.run(["wsl", "-l", "-q"], capture_output=True, text=True)
+    dlist = [d.strip() for d in cp.stdout.splitlines()]
+    if distro not in dlist:
+        logger.error(f"WSL distro '{distro}' not found. Available: {dlist}")
+        sys.exit(1)
+
+    def wsl(cmd: str, check: bool = True):
+        return run(["wsl", "-d", distro, "sh", "-lc", cmd], check=check)
+
+    logger.info(f"- Ensuring Open WebUI inside WSL distro '{distro}' ...")
+    wsl("python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui")
+    wsl(
+        f'command -v ffmpeg >/dev/null 2>&1 || '
+        f'(command -v apt >/dev/null 2>&1 && sudo apt update && sudo apt install -y ffmpeg) || '
+        f'(command -v apk >/dev/null 2>&1 && sudo apk add --no-cache ffmpeg) || '
+        f'(command -v dnf >/dev/null 2>&1 && sudo dnf install -y ffmpeg)',
+        check=False,
+    )
+    wsl(
+        f'nohup env OLLAMA_BASE_URL="http://localhost:{OLLAMA_PORT}" '
+        f'open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT} '
+        f'>/tmp/openwebui.log 2>&1 &',
+        check=False,
+    )
+    try_create_logon_task(
+        "Open WebUI (WSL)",
+        f'wsl -d {distro} sh -lc "env OLLAMA_BASE_URL=\\"http://localhost:{OLLAMA_PORT}\\" open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT}"'
+    )
+    logger.info(f"- Open WebUI (WSL) ensured at http://localhost:{OPENWEBUI_PORT}")
 
 
 def py_exe_preference():
@@ -565,6 +605,14 @@ def ensure_ffmpeg_in_container(container_name: str = "open-webui"):
 # -----------------------------
 
 def main():
+    parser = argparse.ArgumentParser(description="Install SmolLM3 + Open WebUI stack")
+    parser.add_argument(
+        "--wsl",
+        metavar="DISTRO",
+        help="Use a WSL distribution for Open WebUI instead of Docker/pip",
+    )
+    args = parser.parse_args()
+
     log_file = setup_logging()
     logger.info(f"Install root: {BASE}")
 
@@ -577,14 +625,18 @@ def main():
 
     # 2) SmolLM3 model
     ensure_smollm3_model()
+
     # 3) Open WebUI + FFmpeg
-    use_docker = docker_available()
-    if use_docker:
-        ensure_openwebui_docker()
-        ensure_ffmpeg_in_container("open-webui")
+    if args.wsl:
+        ensure_openwebui_wsl(args.wsl)
     else:
-        ensure_ffmpeg_on_host()
-        ensure_openwebui_pip()
+        use_docker = docker_available()
+        if use_docker:
+            ensure_openwebui_docker()
+            ensure_ffmpeg_in_container("open-webui")
+        else:
+            ensure_ffmpeg_on_host()
+            ensure_openwebui_pip()
 
     logger.info("")
     logger.info("✅ All set!")

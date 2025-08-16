@@ -13,8 +13,10 @@ Open PowerShell and navigate to the directory containing the script:
 
 ```powershell
 cd path\to\script
-python install-smollm3-openwebui-unattended.py
+python install-smollm3-openwebui-unattended.py [--wsl <distro-name>]
 ```
+
+Use `--wsl <distro-name>` to launch Open WebUI inside a specific WSL distribution instead of Docker or a Python virtual environment.
 
 The script will download and configure Ollama, the SmolLM3-3B model, Open WebUI, and FFmpeg. It may take several minutes depending on network speed.
 
