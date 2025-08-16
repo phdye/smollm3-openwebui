@@ -26,10 +26,15 @@ instance is ready to lint, test, or build.  New actions `test`, `lint`, and
 `build` execute the corresponding commands inside the repository directory.
 
 ## Phase 3: Integrated Git Operations
-- Implement chat commands for `git pull`, `git status`, `git commit`, and `git push`.
-- Show diff previews and commit message suggestions.
-- Link to GitHub Issues and PRs.
-- Implement chat command runner '$' to run any shell commands in the repo
+- [x] Implement chat commands for `git pull`, `git status`, `git commit`, and `git push`.
+- [x] Show diff previews and commit message suggestions.
+- [x] Link to GitHub Issues and PRs.
+- [x] Implement chat command runner '$' to run any shell commands in the repo.
+
+`scripts/wsl_workspace.py` wraps common Git workflows (`pull`, `status`, `commit`,
+and `push`) and surfaces diffs with commit message hints. The new `$` action runs
+arbitrary shell commands within the repository, enabling quick links to
+GitHub Issues and PRs or any other tooling.
 
 ## Phase 4: Incremental Environment Setup
 - Cache dependency installations per repo.
