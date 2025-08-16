@@ -37,8 +37,13 @@ arbitrary shell commands within the repository, enabling quick links to
 GitHub Issues and PRs or any other tooling.
 
 ## Phase 4: Incremental Environment Setup
-- Cache dependency installations per repo.
-- Provide snapshot/rollback features to revert to prior state.
+- [x] Cache dependency installations per repo.
+- [x] Provide snapshot/rollback features to revert to prior state.
+
+`scripts/wsl_workspace.py` persists downloaded packages in a per-repository
+cache so subsequent sessions reuse previously installed dependencies. The tool
+also exposes `snapshot` and `rollback` actions to capture and restore the
+workspace state, enabling quick resets between experimentation steps.
 
 ## Phase 5: Real-time Testing & Feedback
 - Execute tests asynchronously and stream logs back to chat.
