@@ -462,7 +462,10 @@ def ensure_openwebui_wsl(distro: str):
     if not wsl_available():
         logger.error("wsl.exe not found; install the Windows Subsystem for Linux feature.")
         sys.exit(1)
-    cp = subprocess.run(["wsl", "-l", "-q"], capture_output=True, text=True)
+    # wsl.exe emits UTF-16 output; without decoding, distro names contain nulls
+    cp = subprocess.run(
+        ["wsl", "-l", "-q"], capture_output=True, text=True, encoding="utf-16"
+    )
     dlist = [d.strip() for d in cp.stdout.splitlines()]
     if distro not in dlist:
         logger.error(f"WSL distro '{distro}' not found. Available: {dlist}")
