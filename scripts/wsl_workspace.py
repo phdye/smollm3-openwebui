@@ -31,8 +31,12 @@ def _to_wsl_path(path: str) -> str:
     return str(p)
 
 
-def _ensure_dev_env(distro: str) -> None:
-    """Install developer tooling inside the WSL distro if missing."""
+def _ensure_dev_env(distro: str, repo: str) -> None:
+    """Install developer tooling inside the WSL distro if missing.
+
+    Installation is cached per repository by creating a marker file inside the
+    repo.  Subsequent calls for the same repo skip reinstalling dependencies.
+    """
 
     packages = [
         "build-essential",
@@ -47,9 +51,13 @@ def _ensure_dev_env(distro: str) -> None:
         "pytest",
     ]
     pkg_str = " ".join(packages)
+    wsl_repo = _to_wsl_path(repo)
+    marker = f"{wsl_repo}/.wsl_deps_installed"
     setup_cmd = (
+        f"if [ ! -f {marker} ]; then "
         "sudo apt-get update && "
-        f"sudo apt-get install -y {pkg_str}"
+        f"sudo apt-get install -y {pkg_str} && "
+        f"touch {marker}; fi"
     )
     subprocess.run(["wsl", "-d", distro, "bash", "-lc", setup_cmd], check=True)
 
@@ -67,7 +75,7 @@ def _run_in_wsl(distro: str, repo: str, cmd: str) -> None:
 def start_workspace(distro: str, repo: str) -> None:
     """Open a shell in the WSL distro rooted at the repo path."""
 
-    _ensure_dev_env(distro)
+    _ensure_dev_env(distro, repo)
     _run_in_wsl(distro, repo, "exec bash")
 
 
@@ -80,7 +88,7 @@ def suspend_workspace(distro: str) -> None:
 def run_tests(distro: str, repo: str) -> None:
     """Run pytest inside the WSL distro streaming output as it executes."""
 
-    _ensure_dev_env(distro)
+    _ensure_dev_env(distro, repo)
     wsl_repo = _to_wsl_path(repo)
     cmd = [
         "wsl",
@@ -112,14 +120,14 @@ def run_tests(distro: str, repo: str) -> None:
 def run_lint(distro: str, repo: str) -> None:
     """Run flake8 over the repository inside the WSL distro."""
 
-    _ensure_dev_env(distro)
+    _ensure_dev_env(distro, repo)
     _run_in_wsl(distro, repo, "flake8 .")
 
 
 def run_build(distro: str, repo: str) -> None:
     """Attempt to build the project using common conventions."""
 
-    _ensure_dev_env(distro)
+    _ensure_dev_env(distro, repo)
     build_cmd = (
         "if [ -f Cargo.toml ]; then cargo build; "
         "elif [ -f Makefile ]; then make; "
@@ -132,14 +140,14 @@ def run_build(distro: str, repo: str) -> None:
 def git_pull(distro: str, repo: str) -> None:
     """Run `git pull` inside the repository."""
 
-    _ensure_dev_env(distro)
+    _ensure_dev_env(distro, repo)
     _run_in_wsl(distro, repo, "git pull --ff-only")
 
 
 def git_status(distro: str, repo: str) -> None:
     """Show `git status` for the repository."""
 
-    _ensure_dev_env(distro)
+    _ensure_dev_env(distro, repo)
     _run_in_wsl(distro, repo, "git status")
 
 
@@ -164,7 +172,7 @@ def _suggest_commit_message(distro: str, repo: str) -> str:
 def git_commit(distro: str, repo: str, message: str | None) -> None:
     """Commit tracked changes with diff preview and suggested message."""
 
-    _ensure_dev_env(distro)
+    _ensure_dev_env(distro, repo)
     wsl_repo = _to_wsl_path(repo)
     subprocess.run(
         [
@@ -186,7 +194,7 @@ def git_commit(distro: str, repo: str, message: str | None) -> None:
 def git_push(distro: str, repo: str) -> None:
     """Run `git push` for the repository."""
 
-    _ensure_dev_env(distro)
+    _ensure_dev_env(distro, repo)
     _run_in_wsl(distro, repo, "git push")
 
 
@@ -238,10 +246,36 @@ def open_pr(distro: str, repo: str, pr: str) -> None:
     _open_github_link(distro, f"{base}/pull/{pr}")
 
 
+def snapshot_workspace(distro: str, repo: str) -> None:
+    """Create a tarball snapshot of the repository inside WSL."""
+
+    _ensure_dev_env(distro, repo)
+    wsl_repo = _to_wsl_path(repo)
+    cmd = (
+        f"cd '{wsl_repo}' && "
+        "tar -czf .wsl_snapshot.tar.gz --exclude=.wsl_snapshot.tar.gz ."
+    )
+    subprocess.run(["wsl", "-d", distro, "bash", "-lc", cmd], check=True)
+
+
+def rollback_workspace(distro: str, repo: str) -> None:
+    """Restore the repository to the last snapshot if one exists."""
+
+    _ensure_dev_env(distro, repo)
+    wsl_repo = _to_wsl_path(repo)
+    cmd = (
+        f"cd '{wsl_repo}' && "
+        "if [ -f .wsl_snapshot.tar.gz ]; then "
+        "tar -xzf .wsl_snapshot.tar.gz; "
+        "else echo 'No snapshot found.'; fi"
+    )
+    subprocess.run(["wsl", "-d", distro, "bash", "-lc", cmd], check=True)
+
+
 def run_shell(distro: str, repo: str, command: str) -> None:
     """Run an arbitrary shell command in the repository."""
 
-    _ensure_dev_env(distro)
+    _ensure_dev_env(distro, repo)
     _run_in_wsl(distro, repo, command)
 
 
@@ -264,6 +298,8 @@ def main() -> None:
             "push",
             "issue",
             "pr",
+            "snapshot",
+            "rollback",
             "$",
         ],
         help="Action to perform",
@@ -320,6 +356,10 @@ def main() -> None:
         if not args.target:
             raise SystemExit("pr action requires a pull request number")
         open_pr(args.distro, args.repo, args.target)
+    elif args.action == "snapshot":
+        snapshot_workspace(args.distro, args.repo)
+    elif args.action == "rollback":
+        rollback_workspace(args.distro, args.repo)
     elif args.action == "$":
         if not args.cmd:
             raise SystemExit("$ action requires --cmd")
