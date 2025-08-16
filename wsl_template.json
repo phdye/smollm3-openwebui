@@ -1,0 +1,9 @@
+{
+  "env": {
+    "APP_ENV": "development"
+  },
+  "scripts": {
+    "run-tests": "pytest -vv",
+    "start-devserver": "python -m http.server 8000"
+  }
+}

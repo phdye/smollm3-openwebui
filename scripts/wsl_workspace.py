@@ -11,11 +11,25 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import subprocess
 from pathlib import Path
 
 DEFAULT_DISTRO = "Ubuntu"
+
+
+def _load_template(repo: str) -> dict:
+    """Load template configuration from ``wsl_template.json`` if present."""
+
+    template_path = Path(repo) / "wsl_template.json"
+    if template_path.is_file():
+        with template_path.open("r", encoding="utf-8") as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError as exc:
+                raise SystemExit(f"Invalid JSON in {template_path}: {exc}")
+    return {}
 
 
 def _to_wsl_path(path: str) -> str:
@@ -89,7 +103,13 @@ def start_workspace(distro: str, repo: str) -> None:
     """Open a shell in the WSL distro rooted at the repo path."""
 
     _ensure_dev_env(distro, repo)
-    session_cmd = "tmux new-session -A -s smollm3 'script -f -q wsl_session.log bash'"
+    template = _load_template(repo)
+    env_exports = ""
+    for key, value in template.get("env", {}).items():
+        env_exports += f"export {key}='{value}' && "
+    session_cmd = (
+        f"{env_exports}tmux new-session -A -s smollm3 'script -f -q wsl_session.log bash'"
+    )
     _run_in_wsl(distro, repo, session_cmd, log=False)
 
 
@@ -153,6 +173,18 @@ def run_build(distro: str, repo: str) -> None:
         "else echo 'No build step defined.'; fi"
     )
     _run_in_wsl(distro, repo, build_cmd)
+
+
+def run_template_script(distro: str, repo: str, script: str) -> None:
+    """Run a template-defined script inside the WSL distro."""
+
+    template = _load_template(repo)
+    scripts = template.get("scripts", {})
+    cmd = scripts.get(script)
+    if not cmd:
+        raise SystemExit(f"Unknown action: {script}")
+    _ensure_dev_env(distro, repo)
+    _run_in_wsl(distro, repo, cmd)
 
 
 def git_pull(distro: str, repo: str) -> None:
@@ -321,25 +353,7 @@ def main() -> None:
     )
     parser.add_argument(
         "action",
-        choices=[
-            "start",
-            "resume",
-            "suspend",
-            "test",
-            "lint",
-            "build",
-            "pull",
-            "status",
-            "commit",
-            "push",
-            "issue",
-            "pr",
-            "snapshot",
-            "rollback",
-            "follow",
-            "$",
-        ],
-        help="Action to perform",
+        help="Action to perform or template script name",
     )
     parser.add_argument(
         "--distro",
@@ -366,6 +380,7 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    template_scripts = _load_template(args.repo).get("scripts", {})
 
     if args.action in {"start", "resume"}:
         start_workspace(args.distro, args.repo)
@@ -403,6 +418,10 @@ def main() -> None:
         if not args.cmd:
             raise SystemExit("$ action requires --cmd")
         run_shell(args.distro, args.repo, args.cmd)
+    elif args.action in template_scripts:
+        run_template_script(args.distro, args.repo, args.action)
+    else:
+        raise SystemExit(f"Unknown action: {args.action}")
 
 
 if __name__ == "__main__":
