@@ -2,7 +2,7 @@
 
 This plan describes stepwise features to transform the interactive environment to support persistent, preconfigured, collaborative development sessions.
 
-**Current status:** Phases&nbsp;1–5 are implemented in `scripts/wsl_workspace.py`.  Phases&nbsp;6, 7, and 8 are still future work.
+**Current status:** Phases&nbsp;1–6 are implemented in `scripts/wsl_workspace.py`.  Phases&nbsp;7 and 8 are still future work.
 
 ## Phase 1: Persistent Workspace
 - [x] Set up connection to a WSL distro that remains active during chat session.
@@ -58,11 +58,13 @@ time and emphasizes failing lines and stack traces in red for immediate
 context.
 
 ## Phase 6: Collaborative Features
-- [ ] Allow multiple users to attach to same environment.
-- [ ] Provide session log to track contributions.
-- [ ] Implement follow mode for real-time command/output sharing.
+- [x] Allow multiple users to attach to same environment.
+- [x] Provide session log to track contributions.
+- [x] Implement follow mode for real-time command/output sharing.
 
-*Not yet implemented.*
+`start`/`resume` now launch or attach to a shared `tmux` session that logs all
+activity to `wsl_session.log`.  A new `follow` action tails this log so other
+users can watch commands and output in real time.
 
 ## Phase 7: Customizable Templates
 - [ ] Provide repo-specific environment templates.
