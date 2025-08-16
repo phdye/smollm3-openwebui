@@ -472,25 +472,40 @@ def ensure_openwebui_wsl(distro: str):
         logger.error(f"WSL distro '{distro}' not found. Available: {dlist}")
         sys.exit(1)
 
-    def wsl(cmd: str, check: bool = True):
-        return run(["wsl", "-d", distro, "sh", "-lc", cmd], check=check)
+    def wsl(cmd: str, check: bool = True, as_root: bool = False):
+        base = ["wsl", "-d", distro]
+        if as_root:
+            base += ["-u", "root"]
+        base += ["sh", "-lc", cmd]
+        return run(base, check=check)
 
     logger.info(f"- Ensuring Open WebUI inside WSL distro '{distro}' ...")
-    wsl(
-        "python3 -m pip --version >/dev/null 2>&1 || "
-        "python3 -m ensurepip --upgrade >/dev/null 2>&1 || "
-        "(command -v apt >/dev/null 2>&1 && sudo apt update && sudo apt install -y python3-pip) || "
-        "(command -v apk >/dev/null 2>&1 && sudo apk add --no-cache py3-pip) || "
-        "(command -v dnf >/dev/null 2>&1 && sudo dnf install -y python3-pip)"
-    )
+
+    # Ensure pip
+    res = wsl("python3 -m pip --version >/dev/null 2>&1", check=False)
+    if res.returncode != 0:
+        res = wsl("python3 -m ensurepip --upgrade >/dev/null 2>&1", check=False)
+    if res.returncode != 0:
+        wsl(
+            "(command -v apt >/dev/null 2>&1 && apt update && apt install -y python3-pip) || "
+            "(command -v apk >/dev/null 2>&1 && apk add --no-cache py3-pip) || "
+            "(command -v dnf >/dev/null 2>&1 && dnf install -y python3-pip)",
+            as_root=True,
+        )
+
+    # Install Open WebUI for the user
     wsl("python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui")
-    wsl(
-        f'command -v ffmpeg >/dev/null 2>&1 || '
-        f'(command -v apt >/dev/null 2>&1 && sudo apt update && sudo apt install -y ffmpeg) || '
-        f'(command -v apk >/dev/null 2>&1 && sudo apk add --no-cache ffmpeg) || '
-        f'(command -v dnf >/dev/null 2>&1 && sudo dnf install -y ffmpeg)',
-        check=False,
-    )
+
+    # Ensure ffmpeg (root only when missing)
+    res = wsl("command -v ffmpeg >/dev/null 2>&1", check=False)
+    if res.returncode != 0:
+        wsl(
+            "(command -v apt >/dev/null 2>&1 && apt update && apt install -y ffmpeg) || "
+            "(command -v apk >/dev/null 2>&1 && apk add --no-cache ffmpeg) || "
+            "(command -v dnf >/dev/null 2>&1 && dnf install -y ffmpeg)",
+            check=False,
+            as_root=True,
+        )
     wsl(
         f'nohup env OLLAMA_BASE_URL="http://localhost:{OLLAMA_PORT}" '
         f'open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT} '
