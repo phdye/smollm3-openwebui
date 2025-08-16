@@ -10,6 +10,7 @@ helpers for linking GitHub issues/PRs or running arbitrary shell commands.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import os
 import subprocess
 from pathlib import Path
@@ -85,7 +86,7 @@ def suspend_workspace(distro: str) -> None:
     subprocess.run(["wsl", "--terminate", distro], check=True)
 
 
-def run_tests(distro: str, repo: str) -> None:
+async def run_tests(distro: str, repo: str) -> None:
     """Run pytest inside the WSL distro streaming output as it executes."""
 
     _ensure_dev_env(distro, repo)
@@ -99,22 +100,22 @@ def run_tests(distro: str, repo: str) -> None:
         f"cd '{wsl_repo}' && pytest -vv",
     ]
     # Stream logs line-by-line so failures appear in real time.
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
     )
     assert proc.stdout is not None
-    for line in proc.stdout:
+    async for raw_line in proc.stdout:
+        line = raw_line.decode()
         if any(pat in line for pat in ("FAILED", "ERROR", "Traceback", "E   ")):
             # Highlight failure lines and stack traces in red.
             print(f"\033[91m{line.rstrip()}\033[0m")
         else:
             print(line, end="")
-    proc.wait()
-    if proc.returncode:
-        raise subprocess.CalledProcessError(proc.returncode, cmd)
+    returncode = await proc.wait()
+    if returncode:
+        raise subprocess.CalledProcessError(returncode, cmd)
 
 
 def run_lint(distro: str, repo: str) -> None:
@@ -335,7 +336,7 @@ def main() -> None:
     elif args.action == "suspend":
         suspend_workspace(args.distro)
     elif args.action == "test":
-        run_tests(args.distro, args.repo)
+        asyncio.run(run_tests(args.distro, args.repo))
     elif args.action == "lint":
         run_lint(args.distro, args.repo)
     elif args.action == "build":
