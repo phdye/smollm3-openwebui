@@ -64,8 +64,14 @@ participant's commands and output live so collaborators can observe activity in
 real time.
 
 ## Phase 7: Customizable Templates
-- Provide repo-specific environment templates.
-- Support starter scripts accessible via short chat commands (`!run-tests`, `!start-devserver`).
+- [x] Provide repo-specific environment templates.
+- [x] Support starter scripts accessible via short chat commands (`!run-tests`, `!start-devserver`).
+
+`scripts/wsl_workspace.py` can now load template files located in a repository's
+`templates/` directory to preconfigure packages, environment variables, and shell
+shortcuts. It also exposes short commands like `run-tests` and `start-devserver`
+that invoke starter scripts, giving projects one-line entry points for common
+workflows.
 
 ## Phase 8: Security & Resource Controls
 - ~~Sandbox each session with limited network and compute quotas.~~
