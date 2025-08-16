@@ -493,8 +493,14 @@ def ensure_openwebui_wsl(distro: str):
             as_root=True,
         )
 
-    # Install Open WebUI for the user
-    wsl("python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui")
+    # Install Open WebUI into a dedicated virtual environment
+    venv = "$HOME/.open-webui-venv"
+    wsl(f"[ -d {venv} ] || python3 -m venv {venv}")
+    wsl(f"{venv}/bin/pip install --upgrade pip", check=False)
+    wsl(
+        f"{venv}/bin/pip show open-webui >/dev/null 2>&1 || "
+        f"{venv}/bin/pip install open-webui"
+    )
 
     # Ensure ffmpeg (root only when missing)
     res = wsl("command -v ffmpeg >/dev/null 2>&1", check=False)
@@ -508,13 +514,13 @@ def ensure_openwebui_wsl(distro: str):
         )
     wsl(
         f'nohup env OLLAMA_BASE_URL="http://localhost:{OLLAMA_PORT}" '
-        f'open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT} '
+        f'{venv}/bin/open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT} '
         f'>/tmp/openwebui.log 2>&1 &',
         check=False,
     )
     try_create_logon_task(
         "Open WebUI (WSL)",
-        f'wsl -d {distro} sh -lc "env OLLAMA_BASE_URL=\\"http://localhost:{OLLAMA_PORT}\\" open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT}"'
+        f'wsl -d {distro} sh -lc "env OLLAMA_BASE_URL=\\"http://localhost:{OLLAMA_PORT}\\" {venv}/bin/open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT}"'
     )
     logger.info(f"- Open WebUI (WSL) ensured at http://localhost:{OPENWEBUI_PORT}")
 
