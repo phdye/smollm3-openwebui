@@ -8,6 +8,7 @@ An unattended installer for Windows 11 that sets up Ollama, the SmolLM3-3B model
 - Installs Open WebUI via Docker (preferred) or a Python virtual environment
 - Ensures FFmpeg is present for audio features
 - Logs every action for troubleshooting
+ - Optional WSL backend for Open WebUI via `--wsl <distro>`
 
 ## Prerequisites
 - Windows 11
@@ -18,8 +19,10 @@ An unattended installer for Windows 11 that sets up Ollama, the SmolLM3-3B model
 Run the installer from PowerShell or Command Prompt:
 
 ```powershell
-python install-smollm3-openwebui-unattended.py
+python install-smollm3-openwebui-unattended.py [--wsl <distro-name>]
 ```
+
+Use `--wsl <distro-name>` to run Open WebUI inside the specified WSL distribution when Docker is unavailable.
 
 The script can be re-run safely. It will skip steps that are already complete. Logs are written to `%LOCALAPPDATA%\smollm3_stack\logs`.
 
