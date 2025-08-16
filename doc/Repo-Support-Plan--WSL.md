@@ -46,8 +46,11 @@ also exposes `snapshot` and `rollback` actions to capture and restore the
 workspace state, enabling quick resets between experimentation steps.
 
 ## Phase 5: Real-time Testing & Feedback
-- Execute tests asynchronously and stream logs back to chat.
-- Highlight failing lines and stack traces in context.
+- [x] Execute tests asynchronously and stream logs back to chat.
+- [x] Highlight failing lines and stack traces in context.
+
+`scripts/wsl_workspace.py` streams `pytest` output as tests run and
+emphasizes failing lines and stack traces in red for immediate context.
 
 ## Phase 6: Collaborative Features
 - Allow multiple users to attach to same environment.
