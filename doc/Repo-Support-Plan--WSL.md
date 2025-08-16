@@ -13,12 +13,17 @@ distribution in the repository directory, installs basic tools (Python and
 Git) if missing, and exposes `start`/`resume` and `suspend` actions.
 
 ## Phase 2: Preconfigured Tooling
-- Ensure that system has pre-installed at least these common languages :
-  - C/C++, Rust, Python Development (compiles, linters, test runners)
+- [x] Ensure that system has pre-installed at least these common languages :
+  - C/C++, Rust, Python Development (compilers, linters, test runners)
   - Corresponding compilers, linters, test runners
 
-- Provide chat command wrappers (`!test`, `!lint`, `!build`).
-- Document default environment and configuration.
+- [x] Provide chat command wrappers (`!test`, `!lint`, `!build`).
+- [x] Document default environment and configuration.
+
+`scripts/wsl_workspace.py` now installs `build-essential`, `clang`, `rustc`
+with `cargo`, and Python tooling (`pip`, `flake8`, `pytest`) so a fresh WSL
+instance is ready to lint, test, or build.  New actions `test`, `lint`, and
+`build` execute the corresponding commands inside the repository directory.
 
 ## Phase 3: Integrated Git Operations
 - Implement chat commands for `git pull`, `git status`, `git commit`, and `git push`.
