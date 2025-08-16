@@ -465,9 +465,9 @@ def ensure_openwebui_wsl(distro: str):
         sys.exit(1)
     # wsl.exe emits UTF-16 output; without decoding, distro names contain nulls
     cp = subprocess.run(
-        ["wsl", "-l", "-q"], capture_output=True, text=True, encoding="utf-16"
+        ["wsl", "-l", "-q"], capture_output=True, text=True, encoding="utf-16-le"
     )
-    dlist = [d.strip() for d in cp.stdout.splitlines()]
+    dlist = [d.strip() for d in (cp.stdout or "").splitlines()]
     if distro not in dlist:
         logger.error(f"WSL distro '{distro}' not found. Available: {dlist}")
         sys.exit(1)
