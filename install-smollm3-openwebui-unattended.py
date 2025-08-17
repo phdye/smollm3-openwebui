@@ -495,7 +495,15 @@ def ensure_openwebui_wsl(distro: str):
 
     # Install Open WebUI into a dedicated virtual environment
     venv = "$HOME/.open-webui-venv"
-    wsl(f"[ -d {venv} ] || python3 -m venv {venv}")
+    res = wsl(f"[ -d {venv} ] || python3 -m venv {venv}", check=False)
+    if res.returncode != 0:
+        wsl(
+            "(command -v apt >/dev/null 2>&1 && apt update && apt install -y python3-venv) || "
+            "(command -v apk >/dev/null 2>&1 && apk add --no-cache py3-virtualenv) || "
+            "(command -v dnf >/dev/null 2>&1 && dnf install -y python3-venv)",
+            as_root=True,
+        )
+        wsl(f"python3 -m venv {venv}")
     wsl(f"{venv}/bin/pip install --upgrade pip", check=False)
     wsl(
         f"{venv}/bin/pip show open-webui >/dev/null 2>&1 || "
