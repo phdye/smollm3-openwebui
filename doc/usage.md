@@ -13,10 +13,14 @@ Open PowerShell and navigate to the directory containing the script:
 
 ```powershell
 cd path\to\script
-python tomex-installer.py [--wsl <distro-name>]
+python tomex-installer.py --backend <windows|wsl|docker|pip> [options]
 ```
 
-Use `--wsl <distro-name>` to launch Open WebUI inside a specific WSL distribution instead of Docker or a Python virtual environment.
+The `--backend` flag selects which backend installer to run. On Windows the default is `windows`. Any remaining arguments are forwarded to that backend. Examples:
+
+- `--backend wsl --distro <name>` launches Open WebUI inside the named WSL distribution.
+- `--backend docker` runs Open WebUI in a Docker container.
+- `--backend pip` uses a local Python virtual environment.
 
 The script will download and configure Ollama, the SmolLM3-3B model, Open WebUI, and FFmpeg. It may take several minutes depending on network speed.
 
