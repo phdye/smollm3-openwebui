@@ -1,0 +1,4 @@
+Script started on 2025-08-17 07:39:28-04:00 [COMMAND="set -x && winpy tomex-installer.py --backend wsl --distro Ubuntu-24.04" TERM="screen.xterm-256color" TTY="/dev/pty11" COLUMNS="131" LINES="44"]
++ winpy tomex-installer.py --backend wsl --distro Ubuntu-24.04
+Script done on 2025-08-17 07:39:29-04:00 [COMMAND_EXIT_CODE="0"]
+
