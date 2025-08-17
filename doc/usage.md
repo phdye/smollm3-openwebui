@@ -18,11 +18,11 @@ python tomex-installer.py --backend <windows|wsl|docker|pip> [options]
 
 The `--backend` flag selects which backend installer to run. On Windows the default is `windows`. Any remaining arguments are forwarded to that backend. Examples:
 
-- `--backend wsl --distro <name>` launches Open WebUI inside the named WSL distribution.
+- `--backend wsl [--distro <name>]` launches Open WebUI inside the default WSL distribution or the one specified.
 - `--backend docker` runs Open WebUI in a Docker container.
 - `--backend pip` uses a local Python virtual environment.
 
-The script will download and configure Ollama, the SmolLM3-3B model, Open WebUI, and FFmpeg. It may take several minutes depending on network speed.
+The script will download and configure Ollama, the SmolLM3-3B model, Open WebUI, and FFmpeg. When finished the services start automatically. Installation may take several minutes depending on network speed.
 
 ## 4. Access the services
 - Open WebUI will be available at `http://localhost:3000`

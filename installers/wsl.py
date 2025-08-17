@@ -2,8 +2,8 @@
 
 This installer runs entirely inside a WSL distribution. It ensures that
 Ollama, the SmolLM3 model, Open WebUI and FFmpeg are installed within the
-distribution and creates simple start/stop helper scripts in the user's
-home directory.
+distribution, creates simple start/stop helper scripts in the user's home
+directory and starts the stack immediately.
 """
 
 from __future__ import annotations
@@ -63,6 +63,12 @@ def create_scripts() -> None:
     stop.chmod(0o755)
 
 
+def start_stack() -> None:
+    """Start the Tomex stack using the helper script."""
+    start = Path.home() / "start-tomex.sh"
+    _run([str(start)])
+
+
 def install(argv: list[str] | None = None) -> None:
     """Install the Tomex stack inside the current WSL distribution."""
     parser = argparse.ArgumentParser(description="Install Tomex inside WSL")
@@ -73,3 +79,4 @@ def install(argv: list[str] | None = None) -> None:
     ensure_ffmpeg()
     ensure_openwebui()
     create_scripts()
+    start_stack()

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import platform
+import subprocess
 from typing import Dict, Callable, List
 
 from installers import windows, wsl, docker, pip_installer
@@ -29,6 +30,10 @@ def main(argv: list[str] | None = None) -> None:
         choices=sorted(BACKENDS.keys()),
         help="Which backend installer to run",
     )
+    parser.add_argument(
+        "--distro",
+        help="WSL distribution name (default distribution is used if omitted)",
+    )
     args, remaining = parser.parse_known_args(argv)
 
     backend = args.backend
@@ -38,7 +43,17 @@ def main(argv: list[str] | None = None) -> None:
         else:
             parser.error("--backend is required on non-Windows systems")
 
-    BACKENDS[backend](remaining)
+    if args.distro and backend != "wsl":
+        parser.error("--distro is only valid with --backend wsl")
+
+    if backend == "wsl" and platform.system().lower() == "windows":
+        cmd = ["wsl"]
+        if args.distro:
+            cmd += ["-d", args.distro]
+        cmd += ["python3", "-m", "installers.wsl", *remaining]
+        subprocess.run(cmd, check=True)
+    else:
+        BACKENDS[backend](remaining)
 
 
 if __name__ == "__main__":

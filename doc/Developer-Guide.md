@@ -64,7 +64,7 @@ These can be modified to alter default behaviour such as ports or installation d
 ### Open WebUI
 The installer chooses the runtime environment automatically:
 1. **Docker** – `ensure_openwebui_docker()` pulls and runs the `ghcr.io/open-webui/open-webui:latest` image.  It exposes port `OPENWEBUI_PORT` and links to the local Ollama API.
-2. **WSL** – `ensure_openwebui_wsl(distro)` installs Open WebUI into a virtual environment within the specified distribution and configures a scheduled task to start it.
+2. **WSL** – `ensure_openwebui_wsl(distro=None)` installs Open WebUI into the given distribution (or the default when `distro` is `None`) and configures a scheduled task to start it.
 3. **pip/venv** – `ensure_openwebui_pip()` creates a Windows virtual environment, installs Open WebUI and schedules it to start at logon.
 
 ### FFmpeg

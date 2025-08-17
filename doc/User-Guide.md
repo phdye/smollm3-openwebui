@@ -31,11 +31,11 @@ For ease of use place the script in a directory without spaces in the path.
    ```
 3. Execute the installer:
    ```powershell
-   python install-smollm3-openwebui-unattended.py [--wsl <distro-name>]
+   python install-smollm3-openwebui-unattended.py [--wsl [<distro-name>]]
    ```
 
 ### Command‑line Options
-- `--wsl <distro-name>` – runs Open WebUI inside an existing WSL distribution.  This is useful when Docker is not available.  Specify a distribution name returned by `wsl -l`.
+- `--wsl [<distro-name>]` – runs Open WebUI inside the default WSL distribution or the one specified.  This is useful when Docker is not available.  Specify a distribution name returned by `wsl -l` when targeting a non-default distro.
 
 ### What Happens During Installation
 1. **Directory preparation** – all files live under `%LOCALAPPDATA%\smollm3_stack`.
@@ -43,9 +43,9 @@ For ease of use place the script in a directory without spaces in the path.
 3. **SmolLM3‑3B model** – the GGUF model and an accompanying Modelfile are stored in `%LOCALAPPDATA%\smollm3_stack\models`.  The model is imported into Ollama as `smollm3-local` with context and GPU parameters tuned for local use.
 4. **Open WebUI** – preference order:
    - Docker container named `open-webui`.
-   - WSL virtual environment (when `--wsl` is supplied).
+   - WSL virtual environment (when `--wsl` is supplied, optionally with a distribution name).
    - Python virtual environment in `%LOCALAPPDATA%\smollm3_stack\openwebui-venv`.
-   Autostart is configured through a scheduled task so the interface is available after each login.
+   Autostart is configured through a scheduled task so the interface is available after each login, and the services are started immediately after installation.
 5. **FFmpeg** – installed inside the Docker container, inside WSL, or on the host depending on how Open WebUI is executed.
 6. **Logging** – every action and the output of invoked commands are written to `%LOCALAPPDATA%\smollm3_stack\logs`.  `latest-log.txt` points to the most recent log file.
 
@@ -77,7 +77,7 @@ Re‑run the installer at any time to pull the latest versions of Ollama, Open W
 ## Troubleshooting
 - **Check the logs**: open `%LOCALAPPDATA%\smollm3_stack\logs\latest-log.txt` to find the full log path for the most recent run.
 - **Ports already in use**: ensure nothing else is bound to ports 3000 (Open WebUI) or 11434 (Ollama).
-- **No Docker installed**: install Docker Desktop or run the installer with `--wsl <distro>` or without Docker to use the Python virtual environment.
+- **No Docker installed**: install Docker Desktop or run the installer with `--wsl [<distro>]` or without Docker to use the Python virtual environment.
 - **Model download interrupted**: simply re-run the installer; the download resumes where it left off.
 
 ## Uninstalling
