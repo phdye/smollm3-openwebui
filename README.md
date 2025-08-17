@@ -8,7 +8,7 @@ An unattended installer for Windows 11 that sets up Ollama, the SmolLM3-3B model
 - Installs Ollama and Open WebUI together on the chosen backend (Docker, WSL, or a Python virtual environment)
 - Ensures FFmpeg is present for audio features
 - Logs every action for troubleshooting
-- Optional WSL backend via `--wsl <distro>` installs both components inside the specified distribution
+- Optional WSL backend installs the stack inside the current distribution
 - Provides start/stop scripts accessible from Windows and WSL
 
 ## Prerequisites
@@ -17,19 +17,26 @@ An unattended installer for Windows 11 that sets up Ollama, the SmolLM3-3B model
 - Internet connection for downloading assets
 
 ## Usage
-Run the installer from PowerShell or Command Prompt:
+Run the wrapper from PowerShell or Command Prompt:
 
 ```powershell
-python tomex-installer.py [--wsl <distro-name>]
+python tomex-installer.py --backend <windows|wsl|docker|pip> [options]
 ```
 
-Use `--wsl <distro-name>` to run both Ollama and Open WebUI inside the specified WSL distribution when Docker is unavailable.
+The `--backend` flag selects which installer backend to run. On Windows it
+defaults to `windows`. Any remaining arguments are passed through to the
+chosen backend. For example:
+
+- `--backend wsl` installs Open WebUI inside the current WSL distribution.
+- `--backend docker` runs Open WebUI in a Docker container.
+- `--backend pip` uses a local Python virtual environment.
 
 The script can be re-run safely. It will skip steps that are already complete. Logs are written to `%LOCALAPPDATA%\tomex\logs`.
 
 ## Repository structure
-- `tomex-installer.py` – main installer script
-- `docs/` – additional documentation such as usage guides
+- `tomex-installer.py` – wrapper that selects a backend installer
+- `installers/` – individual backend installers (e.g., `windows.py`)
+- `doc/` – additional documentation such as usage guides
 
 ## Contributing
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidance on how to propose changes.
