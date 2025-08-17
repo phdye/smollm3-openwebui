@@ -23,12 +23,10 @@ Run the wrapper from PowerShell or Command Prompt:
 python tomex-installer.py --backend <windows|wsl|docker|pip> [options]
 ```
 
-The `--backend` flag selects which installer backend to run. On Windows it
-defaults to `windows`. Any remaining arguments are passed through to the
+The `--backend` flag selects which installer backend to run. On Windows it defaults to `windows`. Any remaining arguments are passed through to the
 chosen backend. For example:
 
-- `--backend wsl --distro <name>` installs Open WebUI inside the specified
-  WSL distribution.
+- `--backend wsl --distro <name>` installs Open WebUI inside the specified WSL distribution.
 - `--backend docker` runs Open WebUI in a Docker container.
 - `--backend pip` uses a local Python virtual environment.
 

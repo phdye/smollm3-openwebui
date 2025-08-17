@@ -1,31 +1,91 @@
 """Python virtual environment backend installer for Tomex.
 
-This backend installs Open WebUI into a local Python virtual environment and
-runs Ollama natively on Windows. It mirrors the behaviour previously embedded
-in the Windows installer.
+This installer sets up Ollama and FFmpeg on the host system, creates a
+dedicated virtual environment and installs Open WebUI within it. Simple
+start/stop scripts are generated in the user's home directory.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
 
-from . import windows
+
+def _run(cmd: list[str]) -> None:
+    subprocess.run(cmd, check=True)
+
+
+def ensure_ollama() -> None:
+    if shutil.which("ollama") is None:
+        _run([
+            "winget",
+            "install",
+            "--id",
+            "Ollama.Ollama",
+            "-e",
+            "--silent",
+        ])
+
+
+def ensure_model() -> None:
+    _run(["ollama", "pull", "smollm3:3b"])
+
+
+def ensure_ffmpeg() -> None:
+    if shutil.which("ffmpeg") is None:
+        _run([
+            "winget",
+            "install",
+            "--id",
+            "Gyan.FFmpeg",
+            "-e",
+            "--silent",
+        ])
+
+
+def ensure_openwebui(venv: Path) -> None:
+    if not venv.exists():
+        _run([sys.executable, "-m", "venv", str(venv)])
+
+    pip_path = venv / ("Scripts" if os.name == "nt" else "bin") / "pip"
+    _run([str(pip_path), "install", "--upgrade", "open-webui"])
+
+
+def create_scripts(venv: Path) -> None:
+    home = Path.home()
+    if os.name == "nt":
+        start = home / "start-tomex.ps1"
+        start.write_text(
+            f"& '{venv / 'Scripts' / 'open-webui.exe'}' --host 0.0.0.0\n"
+        )
+        stop = home / "stop-tomex.ps1"
+        stop.write_text(
+            "Stop-Process -Name 'open-webui' -ErrorAction SilentlyContinue\n"
+        )
+    else:
+        start = home / "start-tomex.sh"
+        start.write_text(
+            f"#!/bin/sh\n{venv / 'bin' / 'open-webui'} --host 0.0.0.0 &\n"
+        )
+        start.chmod(0o755)
+
+        stop = home / "stop-tomex.sh"
+        stop.write_text("#!/bin/sh\npkill -f 'open-webui'\n")
+        stop.chmod(0o755)
 
 
 def install(argv: list[str] | None = None) -> None:
-    """Install the Tomex stack using a Python virtual environment."""
     parser = argparse.ArgumentParser(description="Install Tomex using pip/venv")
     parser.parse_args(argv)
 
-    # 1) Ollama and model on the host
-    windows.ensure_ollama_installed()
-    windows.ensure_ollama_running_and_autostart()
-    windows.ensure_smollm3_model()
+    venv = Path.home() / "tomex-venv"
 
-    # 2) Open WebUI via pip and ffmpeg on the host
-    windows.ensure_ffmpeg_on_host()
-    windows.ensure_openwebui_pip()
-
-    # 3) Helper scripts and shortcuts
-    windows.create_start_stop_scripts("pip", None)
-    windows.ensure_start_menu_shortcuts(None)
+    ensure_ollama()
+    ensure_model()
+    ensure_ffmpeg()
+    ensure_openwebui(venv)
+    create_scripts(venv)
