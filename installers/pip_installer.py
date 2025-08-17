@@ -89,4 +89,3 @@ def install(argv: list[str] | None = None) -> None:
     ensure_ffmpeg()
     ensure_openwebui(venv)
     create_scripts(venv)
-

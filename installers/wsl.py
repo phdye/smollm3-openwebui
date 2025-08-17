@@ -73,4 +73,3 @@ def install(argv: list[str] | None = None) -> None:
     ensure_ffmpeg()
     ensure_openwebui()
     create_scripts()
-
