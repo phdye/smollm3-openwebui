@@ -6,7 +6,7 @@
 #
 # Logging:
 # - Writes detailed logs (including ALL stdout/stderr from invoked commands)
-#   to %LOCALAPPDATA%\smollm3_stack\logs\install-YYYYMMDD-HHMMSS.log
+#   to %LOCALAPPDATA%\tomex\logs\install-YYYYMMDD-HHMMSS.log
 # - Also writes logs\latest-log.txt containing the absolute path to the latest log
 #
 # Features:
@@ -16,7 +16,7 @@
 # - Service-like autostart via Scheduled Task; on access denied, falls back to Startup-folder .cmd
 #
 # Usage:
-#   python install_smollm3_openwebui_unattended.py [--wsl <distro-name>]
+#   python tomex-installer.py [--wsl <distro-name>]
 
 import os
 import sys
@@ -47,7 +47,7 @@ NUM_CTX     = 8192
 NUM_THREAD  = max(4, os.cpu_count() or 8)
 NUM_GPU     = 8
 
-BASE               = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "smollm3_stack"
+BASE               = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "tomex"
 DOWNLOADS_DIR      = BASE / "downloads"
 OLLAMA_DIR         = BASE / "ollama"
 OLLAMA_BIN         = OLLAMA_DIR / "ollama.exe"
@@ -57,7 +57,7 @@ OPENWEBUI_VENV     = BASE / "openwebui-venv"
 LOGS_DIR           = BASE / "logs"
 
 # Global logger
-logger = logging.getLogger("smollm3_installer")
+logger = logging.getLogger("tomex_installer")
 
 # -----------------------------
 # Logging & utility helpers
@@ -208,6 +208,120 @@ def wait_for_http(url: str, timeout_s=180):
             time.sleep(2)
     logger.warning(f"! Timeout waiting for {url}")
     return False
+
+
+def create_start_stop_scripts(mode: str, distro: str | None):
+    """Create start/stop scripts for Windows and WSL."""
+    start_cmd = BASE / "start-tomex.cmd"
+    stop_cmd = BASE / "stop-tomex.cmd"
+
+    if mode == "wsl":
+        start_lines = [
+            "@echo off",
+            f"start \"\" \"{OLLAMA_BIN}\" serve",
+            (
+                f"wsl -d {distro} sh -lc \"env OLLAMA_BASE_URL=\\\"http://localhost:{OLLAMA_PORT}\\\" "
+                f"~/.open-webui-venv/bin/open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT}\""
+            ),
+        ]
+        stop_lines = [
+            "@echo off",
+            "taskkill /IM ollama.exe /F >nul 2>&1",
+            f"wsl -d {distro} sh -lc \"pkill -f open-webui\"",
+        ]
+    elif mode == "docker":
+        start_lines = [
+            "@echo off",
+            f"start \"\" \"{OLLAMA_BIN}\" serve",
+            "docker start open-webui",
+        ]
+        stop_lines = [
+            "@echo off",
+            "docker stop open-webui >nul 2>&1",
+            "taskkill /IM ollama.exe /F >nul 2>&1",
+        ]
+    else:  # pip
+        ow_exe = OPENWEBUI_VENV / "Scripts" / "open-webui.exe"
+        start_lines = [
+            "@echo off",
+            f"start \"\" \"{OLLAMA_BIN}\" serve",
+            f"\"{ow_exe}\" serve --host 127.0.0.1 --port {OPENWEBUI_PORT}",
+        ]
+        stop_lines = [
+            "@echo off",
+            "taskkill /IM open-webui.exe /F >nul 2>&1",
+            "taskkill /IM ollama.exe /F >nul 2>&1",
+        ]
+
+    for path, lines in [(start_cmd, start_lines), (stop_cmd, stop_lines)]:
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+            logger.info(f"- Created script: {path}")
+        except Exception as e:
+            logger.warning(f"Could not write {path}: {e}")
+
+    # WSL wrappers
+    start_sh = BASE / "start-tomex.sh"
+    stop_sh = BASE / "stop-tomex.sh"
+    for src, dst in [(start_cmd, start_sh), (stop_cmd, stop_sh)]:
+        try:
+            with open(dst, "w", encoding="utf-8") as f:
+                f.write("#!/bin/sh\n")
+                f.write(f"cmd.exe /c \"{src}\"\n")
+            os.chmod(dst, 0o755)
+            logger.info(f"- Created script: {dst}")
+        except Exception as e:
+            logger.warning(f"Could not write {dst}: {e}")
+
+
+def ensure_start_menu_shortcuts(distro: str | None):
+    """Create Start Menu folder and shortcuts for Tomex."""
+    appdata = os.environ.get("APPDATA")
+    if not appdata:
+        logger.warning("APPDATA not set; cannot create Start Menu shortcuts")
+        return
+
+    sm_dir = Path(appdata) / r"Microsoft\Windows\Start Menu\Programs\Tomex"
+    sm_dir.mkdir(parents=True, exist_ok=True)
+
+    # Browser shortcut to the Web UI
+    url_file = sm_dir / "Open WebUI.url"
+    try:
+        url_file.write_text(
+            f"[InternetShortcut]\nURL=http://localhost:{OPENWEBUI_PORT}\n",
+            encoding="utf-8",
+        )
+        logger.info(f"- Created Start Menu shortcut: {url_file}")
+    except Exception as e:
+        logger.warning(f"Could not create shortcut {url_file}: {e}")
+
+    # Wrappers to start/stop scripts
+    start_cmd = BASE / "start-tomex.cmd"
+    stop_cmd = BASE / "stop-tomex.cmd"
+    start_link = sm_dir / "Start Tomex.cmd"
+    stop_link = sm_dir / "Stop Tomex.cmd"
+    for src, dst in [(start_cmd, start_link), (stop_cmd, stop_link)]:
+        try:
+            with open(dst, "w", encoding="utf-8") as f:
+                f.write(f"@echo off\n\"{src}\"\n")
+            logger.info(f"- Created Start Menu shortcut: {dst}")
+        except Exception as e:
+            logger.warning(f"Could not create shortcut {dst}: {e}")
+
+    if distro:
+        cmd_file = sm_dir / "Open WebUI (WSL).cmd"
+        cmd = (
+            f'wsl -d {distro} sh -lc "env OLLAMA_BASE_URL=\\"http://localhost:{OLLAMA_PORT}\\" '
+            f'~/.open-webui-venv/bin/open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT}"'
+        )
+        try:
+            with open(cmd_file, "w", encoding="utf-8") as f:
+                f.write("@echo off\n")
+                f.write(cmd + "\n")
+            logger.info(f"- Created Start Menu shortcut: {cmd_file}")
+        except Exception as e:
+            logger.warning(f"Could not create shortcut {cmd_file}: {e}")
 
 
 def head_content_length(url: str) -> int | None:
@@ -529,12 +643,17 @@ def ensure_openwebui_wsl(distro: str):
             check=False,
             as_root=True,
         )
-    wsl(
-        f'nohup env OLLAMA_BASE_URL="http://localhost:{OLLAMA_PORT}" '
-        f'{venv}/bin/open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT} '
-        f'>/tmp/openwebui.log 2>&1 &',
-        check=False,
-    )
+    cmd = [
+        "wsl", "-d", distro, "sh", "-lc",
+        f'env OLLAMA_BASE_URL="http://localhost:{OLLAMA_PORT}" '
+        f'{venv}/bin/open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT}'
+    ]
+    try:
+        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        logger.info("- Launched Open WebUI inside WSL")
+    except Exception as e:
+        logger.warning(f"Could not launch Open WebUI: {e}")
+
     try_create_logon_task(
         "Open WebUI (WSL)",
         f'wsl -d {distro} sh -lc "env OLLAMA_BASE_URL=\\"http://localhost:{OLLAMA_PORT}\\" {venv}/bin/open-webui serve --host 0.0.0.0 --port {OPENWEBUI_PORT}"'
@@ -654,7 +773,7 @@ def ensure_ffmpeg_in_container(container_name: str = "open-webui"):
 # -----------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Install SmolLM3 + Open WebUI stack")
+    parser = argparse.ArgumentParser(description="Install Tomex stack")
     parser.add_argument(
         "--wsl",
         metavar="DISTRO",
@@ -678,14 +797,21 @@ def main():
     # 3) Open WebUI + FFmpeg
     if args.wsl:
         ensure_openwebui_wsl(args.wsl)
+        mode = "wsl"
     else:
         use_docker = docker_available()
         if use_docker:
             ensure_openwebui_docker()
             ensure_ffmpeg_in_container("open-webui")
+            mode = "docker"
         else:
             ensure_ffmpeg_on_host()
             ensure_openwebui_pip()
+            mode = "pip"
+
+    # 4) Start/stop scripts and Start Menu shortcuts
+    create_start_stop_scripts(mode, args.wsl if args.wsl else None)
+    ensure_start_menu_shortcuts(args.wsl if args.wsl else None)
 
     logger.info("")
     logger.info("✅ All set!")

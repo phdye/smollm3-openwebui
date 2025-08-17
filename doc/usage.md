@@ -13,7 +13,7 @@ Open PowerShell and navigate to the directory containing the script:
 
 ```powershell
 cd path\to\script
-python install-smollm3-openwebui-unattended.py [--wsl <distro-name>]
+python tomex-installer.py [--wsl <distro-name>]
 ```
 
 Use `--wsl <distro-name>` to launch Open WebUI inside a specific WSL distribution instead of Docker or a Python virtual environment.
@@ -25,7 +25,7 @@ The script will download and configure Ollama, the SmolLM3-3B model, Open WebUI,
 - The Ollama API will run at `http://localhost:11434`
 
 ## 5. Logs
-Detailed logs are written to `%LOCALAPPDATA%\smollm3_stack\logs`. Each run creates a timestamped log file and updates `latest-log.txt` with the most recent path.
+Detailed logs are written to `%LOCALAPPDATA%\tomex\logs`. Each run creates a timestamped log file and updates `latest-log.txt` with the most recent path.
 
 ## 6. Re-running
 You can re-run the script at any time. It detects completed steps and skips them, making the process idempotent.
