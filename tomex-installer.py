@@ -9,17 +9,26 @@ forwards command-line arguments to it. Each backend lives in the
 from __future__ import annotations
 
 import argparse
+import importlib
 import platform
 import subprocess
 from typing import Dict, Callable, List
 
-from installers import windows, wsl, docker, pip_installer
+def _lazy(module: str) -> Callable[[List[str]], None]:
+    """Return a callable that imports ``module`` on demand and runs its
+    ``install`` function."""
+
+    def _runner(args: List[str]) -> None:
+        importlib.import_module(module).install(args)
+
+    return _runner
+
 
 BACKENDS: Dict[str, Callable[[List[str]], None]] = {
-    "windows": windows.install,
-    "wsl": wsl.install,
-    "docker": docker.install,
-    "pip": pip_installer.install,
+    "windows": _lazy("installers.windows"),
+    "wsl": _lazy("installers.wsl"),
+    "docker": _lazy("installers.docker"),
+    "pip": _lazy("installers.pip_installer"),
 }
 
 
