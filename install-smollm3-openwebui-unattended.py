@@ -504,8 +504,15 @@ def ensure_openwebui_wsl(distro: str):
             as_root=True,
         )
         wsl(f"python3 -m venv {venv}")
-    # Some distributions build Python without ensurepip in the venv; bootstrap it if missing.
-    wsl(f"[ -x {venv}/bin/pip ] || {venv}/bin/python -m ensurepip --upgrade", check=False)
+    # Some distributions build Python without ensurepip in the venv; bootstrap pip if missing.
+    res = wsl(f"[ -x {venv}/bin/pip ]", check=False)
+    if res.returncode != 0:
+        res = wsl(f"{venv}/bin/python -m ensurepip --upgrade", check=False)
+        if res.returncode != 0:
+            wsl(
+                f"(command -v curl >/dev/null 2>&1 && curl -sSf https://bootstrap.pypa.io/get-pip.py | {venv}/bin/python) || "
+                f"(command -v wget >/dev/null 2>&1 && wget -qO- https://bootstrap.pypa.io/get-pip.py | {venv}/bin/python)",
+            )
     wsl(f"{venv}/bin/pip install --upgrade pip", check=False)
     wsl(
         f"{venv}/bin/pip show open-webui >/dev/null 2>&1 || "
