@@ -1,0 +1,32 @@
+Script started on 2025-08-16 16:10:17-04:00 [COMMAND="set -x && winpy install-smollm3-openwebui-unattended.py --wsl Ubuntu-24.04" TERM="screen.xterm-256color" TTY="/dev/pty11" COLUMNS="121" LINES="40"]
++ winpy install-smollm3-openwebui-unattended.py --wsl Ubuntu-24.04
+2025-08-16 21:10:17,523 INFO Logging to: C:\Users\phdyex\AppData\Local\smollm3_stack\logs\install-20250816-211017.log
+2025-08-16 21:10:17,523 INFO Install root: C:\Users\phdyex\AppData\Local\smollm3_stack
+2025-08-16 21:10:17,523 INFO - Ollama already present.
+2025-08-16 21:10:17,530 INFO - Ollama API already up.
+2025-08-16 21:10:17,530 INFO $ schtasks /Create /TN Ollama Serve /TR "C:\Users\phdyex\AppData\Local\smollm3_stack\ollama_serve.cmd" /SC ONLOGON /F
+2025-08-16 21:10:17,574 INFO SUCCESS: The scheduled task "Ollama Serve" has successfully been created.
+2025-08-16 21:10:17,582 INFO - Created/updated scheduled task: Ollama Serve
+2025-08-16 21:10:17,582 INFO - Waiting for HTTP: http://127.0.0.1:11434/api/tags
+2025-08-16 21:10:17,837 INFO - HTTP ready: http://127.0.0.1:11434/api/tags (status 200)
+2025-08-16 21:10:18,168 INFO - SmolLM3-Q4_K_M.gguf already complete; skipping download.
+2025-08-16 21:10:18,168 INFO - Modelfile already up to date.
+2025-08-16 21:10:18,185 INFO - Ollama model 'smollm3-local' already exists; skipping create.
+2025-08-16 21:10:18,239 INFO - Ensuring Open WebUI inside WSL distro 'Ubuntu-24.04' ...
+2025-08-16 21:10:18,239 INFO $ wsl -d Ubuntu-24.04 sh -lc python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui
+2025-08-16 21:10:18,351 INFO /usr/bin/python3: No module named pip
+Traceback (most recent call last):
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 658, in <module>
+    main()
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 635, in main
+    ensure_openwebui_wsl(args.wsl)
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 479, in ensure_openwebui_wsl
+    wsl("python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui")
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 476, in wsl
+    return run(["wsl", "-d", distro, "sh", "-lc", cmd], check=check)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\-\cygwin\root\home\phdyex\my-repos\smollm3-openwebui\install-smollm3-openwebui-unattended.py", line 136, in run
+    raise subprocess.CalledProcessError(ret, cmd, output=tail)
+subprocess.CalledProcessError: Command '['wsl', '-d', 'Ubuntu-24.04', 'sh', '-lc', 'python3 -m pip show open-webui >/dev/null 2>&1 || python3 -m pip install --user open-webui']' returned non-zero exit status 1.
+Script done on 2025-08-16 16:10:18-04:00 [COMMAND_EXIT_CODE="1"]
+
