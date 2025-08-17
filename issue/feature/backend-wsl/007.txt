@@ -1,0 +1,5 @@
+Script started on 2025-08-17 07:18:55-04:00 [COMMAND="set -x && winpy tomex-installer.py --backend wsl --distro Ubuntu-24.04" TERM="screen.xterm-256color" TTY="/dev/pty11" COLUMNS="131" LINES="44"]
++ winpy tomex-installer.py --backend wsl --distro Ubuntu-24.04
+<frozen runpy>:128: RuntimeWarning: 'installers.wsl' found in sys.modules after import of package 'installers', but prior to execution of 'installers.wsl'; this may result in unpredictable behaviour
+Script done on 2025-08-17 07:18:56-04:00 [COMMAND_EXIT_CODE="0"]
+
