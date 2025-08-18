@@ -13,6 +13,9 @@ import argparse
 import shutil
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
@@ -27,6 +30,19 @@ def _run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True)
 
 
+def _wait_for_ollama(timeout: int = 60) -> None:
+    """Block until the Ollama API is responsive."""
+
+    url = "http://127.0.0.1:11434/api/version"
+    for _ in range(timeout):
+        try:
+            urllib.request.urlopen(url, timeout=1)
+            return
+        except urllib.error.URLError:
+            time.sleep(1)
+    raise RuntimeError("Ollama server not responding")
+
+
 def ensure_ollama() -> None:
     """Install Ollama if it is not already available."""
     print("Ensuring Ollama is installed...", flush=True)
@@ -39,6 +55,7 @@ def ensure_ollama() -> None:
 def ensure_model() -> None:
     """Download the SmolLM3 model."""
     print("Fetching SmolLM3 model...", flush=True)
+    _wait_for_ollama()
     _run(["ollama", "pull", "smollm3:3b"])
 
 
