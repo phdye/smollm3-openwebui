@@ -13,6 +13,7 @@ import os
 import platform
 import subprocess
 import sys
+import traceback
 from pathlib import Path
 
 
@@ -81,17 +82,35 @@ def main(argv: list[str] | None = None) -> None:
 
     module = BACKENDS[backend]
 
+    def _run(cmd: list[str]) -> None:
+        """Execute *cmd* and surface detailed errors on failure."""
+
+        proc = subprocess.run(cmd, text=True, capture_output=True)
+        if proc.stdout:
+            print(proc.stdout, end="")
+        if proc.stderr:
+            print(proc.stderr, end="", file=sys.stderr)
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"Command {' '.join(cmd)} failed with exit code {proc.returncode}"
+            )
+
     if backend == "wsl" and platform.system().lower() == "windows":
         cmd = ["wsl"]
         if args.distro:
             cmd += ["-d", args.distro]
         cmd += ["-u", "root", "python3", "-m", module, *remaining]
-        subprocess.run(cmd, check=True)
+        _run(cmd)
         _create_start_menu_shortcuts_wsl(args.distro)
     else:
         cmd = [sys.executable, "-m", module, *remaining]
-        subprocess.run(cmd, check=True)
+        _run(cmd)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as exc:
+        print(f"Installation failed: {exc}", file=sys.stderr)
+        traceback.print_exc()
+        sys.exit(1)

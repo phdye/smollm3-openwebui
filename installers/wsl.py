@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -27,7 +28,15 @@ def _run(cmd: list[str]) -> None:
     """
 
     print("+", " ".join(cmd), flush=True)
-    subprocess.run(cmd, check=True)
+    proc = subprocess.run(cmd, text=True, capture_output=True)
+    if proc.stdout:
+        print(proc.stdout, end="")
+    if proc.stderr:
+        print(proc.stderr, end="", file=sys.stderr)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"Command {' '.join(cmd)} failed with exit code {proc.returncode}"
+        )
 
 
 def _wait_for_ollama(timeout: int = 60) -> None:
@@ -117,4 +126,9 @@ def install(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    install()
+    try:
+        install()
+    except Exception as exc:
+        print(f"Installation failed: {exc}", file=sys.stderr)
+        traceback.print_exc()
+        sys.exit(1)
