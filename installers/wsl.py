@@ -43,6 +43,17 @@ def _wait_for_ollama(timeout: int = 60) -> None:
     raise RuntimeError("Ollama server not responding")
 
 
+def _ollama_running() -> bool:
+    """Return ``True`` if the Ollama API is responding."""
+
+    url = "http://127.0.0.1:11434/api/version"
+    try:
+        urllib.request.urlopen(url, timeout=1)
+        return True
+    except urllib.error.URLError:
+        return False
+
+
 def ensure_ollama() -> None:
     """Install Ollama if it is not already available."""
     print("Ensuring Ollama is installed...", flush=True)
@@ -55,8 +66,21 @@ def ensure_ollama() -> None:
 def ensure_model() -> None:
     """Download the SmolLM3 model."""
     print("Fetching SmolLM3 model...", flush=True)
+    server: subprocess.Popen[str] | None = None
+    if not _ollama_running():
+        server = subprocess.Popen(
+            ["ollama", "serve"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     _wait_for_ollama()
     _run(["ollama", "pull", "smollm3:3b"])
+    if server is not None:
+        server.terminate()
+        try:
+            server.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            server.kill()
 
 
 def ensure_ffmpeg() -> None:
