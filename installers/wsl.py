@@ -63,6 +63,26 @@ def _ollama_running() -> bool:
         return False
 
 
+def ensure_tomex_user() -> None:
+    """Create a dedicated 'tomex' user if it doesn't exist."""
+    print("Ensuring 'tomex' user exists...", flush=True)
+    res = subprocess.run(["id", "tomex"], capture_output=True)
+    if res.returncode != 0:
+        _run(
+            [
+                "sudo",
+                "useradd",
+                "--system",
+                "--create-home",
+                "--home-dir",
+                "/opt/tomex",
+                "--shell",
+                "/bin/bash",
+                "tomex",
+            ]
+        )
+
+
 def ensure_ollama() -> None:
     """Install Ollama if it is not already available."""
     print("Ensuring Ollama is installed...", flush=True)
@@ -113,20 +133,30 @@ def ensure_ffmpeg() -> None:
 def ensure_openwebui() -> None:
     """Install Open WebUI using pip."""
     print("Installing/upgrading Open WebUI...", flush=True)
-    _run([sys.executable, "-m", "pip", "install", "--upgrade", "open-webui"])
+    _run(
+        [
+            "sudo",
+            "-u",
+            "tomex",
+            "bash",
+            "-lc",
+            "python3 -m pip install --upgrade --user open-webui",
+        ]
+    )
 
 
 def create_scripts() -> None:
-    """Create start/stop scripts in the user's home directory."""
+    """Create start/stop scripts in the tomex user's home directory."""
     print("Creating helper scripts...", flush=True)
-    home = Path.home()
+    home = Path("/opt/tomex")
     start = home / "start-tomex.sh"
     start.write_text(
         "#!/bin/bash\n"
         "ollama serve &\n"
-        "open-webui --host 0.0.0.0 &\n"
+        "$HOME/.local/bin/open-webui --host 0.0.0.0 &\n"
     )
     start.chmod(0o755)
+    _run(["sudo", "chown", "tomex:tomex", str(start)])
 
     stop = home / "stop-tomex.sh"
     stop.write_text(
@@ -135,13 +165,14 @@ def create_scripts() -> None:
         "pkill -f 'ollama serve'\n"
     )
     stop.chmod(0o755)
+    _run(["sudo", "chown", "tomex:tomex", str(stop)])
 
 
 def start_stack() -> None:
     """Start the Tomex stack using the helper script."""
     print("Starting Tomex...", flush=True)
-    start = Path.home() / "start-tomex.sh"
-    _run([str(start)])
+    start = Path("/opt/tomex") / "start-tomex.sh"
+    _run(["sudo", "-u", "tomex", str(start)])
 
 
 def install(argv: list[str] | None = None) -> None:
@@ -149,6 +180,7 @@ def install(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Install Tomex inside WSL")
     parser.parse_args(argv)
 
+    ensure_tomex_user()
     ensure_ollama()
     ensure_model()
     ensure_ffmpeg()

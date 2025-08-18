@@ -9,7 +9,7 @@ An unattended installer for Windows 11 that sets up Ollama, the SmolLM3-3B model
 - Ensures FFmpeg is present for audio features
 - Logs every action for troubleshooting
 - Optional WSL backend via `--backend wsl` (uses the default distribution) or `--backend wsl --distro <name>` installs the stack inside a specified distribution
-- Provides start/stop scripts accessible from Windows and WSL
+- Installs the WSL stack under an isolated `tomex` user with start/stop scripts accessible from Windows and WSL
 - Starts the Tomex stack automatically after installation
 
 ## Prerequisites
