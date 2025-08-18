@@ -1,0 +1,19 @@
+Ensuring Ollama is installed...
++ bash -lc curl -fsSL https://ollama.ai/install.sh | sh
+ssh-agent is already running
+3072 SHA256:K3kEgqHAK6Cw2bzuiR+ICU7KCW3qZFZpu5KDYn74fMo phdyex@xps-ne (RSA)
+
+Attaching from inside of screen?
+Fetching SmolLM3 model...
+Traceback (most recent call last):
+  File "/dn/wsl.py", line 144, in <module>
+    install()
+  File "/dn/wsl.py", line 136, in install
+    ensure_model()
+  File "/dn/wsl.py", line 71, in ensure_model
+    server = subprocess.Popen(
+  File "/usr/lib/python3.9/subprocess.py", line 951, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/usr/lib/python3.9/subprocess.py", line 1821, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'ollama'
