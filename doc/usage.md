@@ -18,7 +18,7 @@ python tomex-installer.py --backend <windows|wsl|docker|pip> [options]
 
 The `--backend` flag selects which backend installer to run. On Windows the default is `windows`. Any remaining arguments are forwarded to that backend. Examples:
 
-- `--backend wsl [--distro <name>]` launches Open WebUI inside the default WSL distribution or the one specified.
+- `--backend wsl [--distro <name>]` launches Open WebUI inside the default WSL distribution or the one specified while using the Ollama service running on Windows to access the GPU.
 - `--backend docker` runs Open WebUI in a Docker container.
 - `--backend pip` uses a local Python virtual environment.
 

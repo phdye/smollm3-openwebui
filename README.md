@@ -5,10 +5,10 @@ An unattended installer for Windows 11 that sets up Ollama, the SmolLM3-3B model
 ## Features
 - Resumable, idempotent installation
 - Fetches and configures SmolLM3-3B from the ggml-org repository
-- Installs Ollama and Open WebUI together on the chosen backend (Docker, WSL, or a Python virtual environment)
+- Installs Ollama on Windows and Open WebUI on the chosen backend (Docker, WSL, or a Python virtual environment)
 - Ensures FFmpeg is present for audio features
 - Logs every action for troubleshooting
-- Optional WSL backend via `--backend wsl` (uses the default distribution) or `--backend wsl --distro <name>` installs the stack inside a specified distribution
+- Optional WSL backend via `--backend wsl` (uses the default distribution) or `--backend wsl --distro <name>` installs Open WebUI inside a specified distribution while Ollama stays on Windows for direct GPU access
 - Provides start/stop scripts accessible from Windows and WSL
 - Starts the Tomex stack automatically after installation
 

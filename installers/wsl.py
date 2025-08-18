@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
 """WSL backend installer for Tomex.
 
-This installer runs entirely inside a WSL distribution. It ensures that
-Ollama, the SmolLM3 model, Open WebUI and FFmpeg are installed within the
-distribution, creates simple start/stop helper scripts in the user's home
-directory and starts the stack immediately.
+This installer runs inside a WSL distribution but intentionally keeps
+``ollama`` on the Windows host so it can talk to the GPU directly. Only
+Open WebUI and FFmpeg are provisioned in WSL, and helper scripts are
+created to launch the interface while using the host's Ollama service.
 """
 
 from __future__ import annotations
@@ -39,65 +38,33 @@ def _run(cmd: list[str]) -> None:
         )
 
 
-def _wait_for_ollama(timeout: int = 60) -> None:
-    """Block until the Ollama API is responsive."""
+def _windows_host_ip() -> str:
+    """Return the IP address of the Windows host.
 
-    url = "http://127.0.0.1:11434/api/version"
+    WSL exposes the Windows host as the first nameserver in ``/etc/resolv.conf``.
+    """
+
+    with open("/etc/resolv.conf", "r", encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith("nameserver"):
+                return line.split()[1].strip()
+    raise RuntimeError("Unable to determine Windows host IP address")
+
+
+def ensure_host_ollama(host_ip: str, timeout: int = 60) -> None:
+    """Verify that Ollama is reachable on the Windows host."""
+
+    url = f"http://{host_ip}:11434/api/version"
+    print(f"Checking for Ollama on Windows host at {url}...", flush=True)
     for _ in range(timeout):
         try:
             urllib.request.urlopen(url, timeout=1)
             return
         except urllib.error.URLError:
             time.sleep(1)
-    raise RuntimeError("Ollama server not responding")
-
-
-def _ollama_running() -> bool:
-    """Return ``True`` if the Ollama API is responding."""
-
-    url = "http://127.0.0.1:11434/api/version"
-    try:
-        urllib.request.urlopen(url, timeout=1)
-        return True
-    except urllib.error.URLError:
-        return False
-
-
-def ensure_ollama() -> None:
-    """Install Ollama if it is not already available."""
-    print("Ensuring Ollama is installed...", flush=True)
-    if shutil.which("ollama") is None:
-        _run(["bash", "-lc", "curl -fsSL https://ollama.ai/install.sh | sh"])
-    else:
-        print("Ollama already present", flush=True)
-
-
-def ensure_model() -> None:
-    """Download the SmolLM3 model."""
-    print("Fetching SmolLM3 model...", flush=True)
-    if shutil.which("ollama") is None:
-        raise RuntimeError("Ollama executable not found; ensure installation succeeded")
-
-    server: subprocess.Popen[str] | None = None
-    if not _ollama_running():
-        try:
-            server = subprocess.Popen(
-                ["ollama", "serve"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except FileNotFoundError as exc:
-            raise RuntimeError(
-                "Ollama executable not found; ensure installation succeeded"
-            ) from exc
-    _wait_for_ollama()
-    _run(["ollama", "pull", "smollm3:3b"])
-    if server is not None:
-        server.terminate()
-        try:
-            server.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            server.kill()
+    raise RuntimeError(
+        "Ollama server on Windows host not responding; install and run Ollama on Windows so it can access the GPU",
+    )
 
 
 def ensure_ffmpeg() -> None:
@@ -123,7 +90,8 @@ def create_scripts() -> None:
     start = home / "start-tomex.sh"
     start.write_text(
         "#!/bin/bash\n"
-        "ollama serve &\n"
+        "WIN_HOST=$(awk '/nameserver/ {print $2; exit}' /etc/resolv.conf)\n"
+        "export OLLAMA_HOST=http://$WIN_HOST:11434\n"
         "open-webui --host 0.0.0.0 &\n"
     )
     start.chmod(0o755)
@@ -132,7 +100,6 @@ def create_scripts() -> None:
     stop.write_text(
         "#!/bin/bash\n"
         "pkill -f 'open-webui'\n"
-        "pkill -f 'ollama serve'\n"
     )
     stop.chmod(0o755)
 
@@ -149,8 +116,8 @@ def install(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Install Tomex inside WSL")
     parser.parse_args(argv)
 
-    ensure_ollama()
-    ensure_model()
+    host_ip = _windows_host_ip()
+    ensure_host_ollama(host_ip)
     ensure_ffmpeg()
     ensure_openwebui()
     create_scripts()
