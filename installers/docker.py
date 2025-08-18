@@ -11,12 +11,23 @@ import argparse
 import os
 import shutil
 import subprocess
+import sys
+import traceback
 from pathlib import Path
 
 
 def _run(cmd: list[str], capture: bool = False) -> subprocess.CompletedProcess:
-    """Run *cmd* and optionally capture output."""
-    return subprocess.run(cmd, check=True, text=True, capture_output=capture)
+    """Run *cmd* and optionally capture output with detailed errors."""
+
+    proc = subprocess.run(cmd, text=True, capture_output=True)
+    if proc.returncode != 0:
+        message = f"Command {' '.join(cmd)} failed with exit code {proc.returncode}"
+        if proc.stderr:
+            message += f"\n{proc.stderr}"
+        raise RuntimeError(message)
+    if not capture and proc.stdout:
+        print(proc.stdout, end="")
+    return proc
 
 
 def ensure_docker() -> None:
@@ -110,5 +121,10 @@ def install(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    install()
+    try:
+        install()
+    except Exception as exc:
+        print(f"Installation failed: {exc}", file=sys.stderr)
+        traceback.print_exc()
+        sys.exit(1)
 
