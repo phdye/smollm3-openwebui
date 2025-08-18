@@ -9,6 +9,7 @@ created to launch the interface while using the host's Ollama service.
 from __future__ import annotations
 
 import argparse
+import pwd
 import shutil
 import subprocess
 import sys
@@ -17,6 +18,9 @@ import traceback
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+
+APP_USER = "tomex"
 
 
 def _run(cmd: list[str]) -> None:
@@ -77,24 +81,49 @@ def ensure_ffmpeg() -> None:
         print("FFmpeg already present", flush=True)
 
 
+def ensure_app_user() -> Path:
+    """Create the dedicated application user if needed."""
+    print(f"Ensuring application user '{APP_USER}' exists...", flush=True)
+    try:
+        pwd.getpwnam(APP_USER)
+        print(f"User '{APP_USER}' already present", flush=True)
+    except KeyError:
+        _run(["useradd", "--create-home", "--shell", "/bin/bash", APP_USER])
+    return Path(f"/home/{APP_USER}")
+
+
 def ensure_openwebui() -> None:
     """Install Open WebUI using pip."""
     print("Installing/upgrading Open WebUI...", flush=True)
-    _run([sys.executable, "-m", "pip", "install", "--upgrade", "open-webui"])
+    _run([
+        "sudo",
+        "-H",
+        "-u",
+        APP_USER,
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "--upgrade",
+        "--user",
+        "open-webui",
+    ])
 
 
-def create_scripts() -> None:
-    """Create start/stop scripts in the user's home directory."""
+def create_scripts(home: Path) -> None:
+    """Create start/stop scripts in the application user's home directory."""
     print("Creating helper scripts...", flush=True)
-    home = Path.home()
+    home.mkdir(parents=True, exist_ok=True)
     start = home / "start-tomex.sh"
     start.write_text(
         "#!/bin/bash\n"
         "WIN_HOST=$(awk '/nameserver/ {print $2; exit}' /etc/resolv.conf)\n"
         "export OLLAMA_HOST=http://$WIN_HOST:11434\n"
+        "PATH=\"$HOME/.local/bin:$PATH\"\n"
         "open-webui --host 0.0.0.0 &\n"
     )
     start.chmod(0o755)
+    shutil.chown(start, APP_USER, APP_USER)
 
     stop = home / "stop-tomex.sh"
     stop.write_text(
@@ -102,13 +131,14 @@ def create_scripts() -> None:
         "pkill -f 'open-webui'\n"
     )
     stop.chmod(0o755)
+    shutil.chown(stop, APP_USER, APP_USER)
 
 
-def start_stack() -> None:
+def start_stack(home: Path) -> None:
     """Start the Tomex stack using the helper script."""
     print("Starting Tomex...", flush=True)
-    start = Path.home() / "start-tomex.sh"
-    _run([str(start)])
+    start = home / "start-tomex.sh"
+    _run(["sudo", "-u", APP_USER, str(start)])
 
 
 def install(argv: list[str] | None = None) -> None:
@@ -119,9 +149,10 @@ def install(argv: list[str] | None = None) -> None:
     host_ip = _windows_host_ip()
     ensure_host_ollama(host_ip)
     ensure_ffmpeg()
+    home = ensure_app_user()
     ensure_openwebui()
-    create_scripts()
-    start_stack()
+    create_scripts(home)
+    start_stack(home)
 
 
 if __name__ == "__main__":
