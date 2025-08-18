@@ -111,10 +111,10 @@ Ollama running on the Windows host so it can access the GPU directly. The
 script performs the following steps:
 1. Determine the Windows host IP and ensure the Ollama API is reachable.
 2. Install FFmpeg via `apt` (`ensure_ffmpeg`).
-3. Install Open WebUI using `pip` (`ensure_openwebui`).
-4. Generate `start-tomex.sh` and `stop-tomex.sh` in the home directory
+3. Install Open WebUI using `pip` (`ensure_openwebui`) for a dedicated `tomex` user.
+4. Generate `start-tomex.sh` and `stop-tomex.sh` in `/home/tomex`
    (`create_scripts`), pointing Open WebUI at the host's Ollama service.
-5. Launch the stack (`start_stack`)【F:installers/wsl.py†L1-L116】.
+5. Launch the stack (`start_stack`) as the `tomex` user【F:installers/wsl.py†L1-L116】.
 
 Each command is echoed before execution so that the user sees a blow‑by‑blow
 log of what happened.

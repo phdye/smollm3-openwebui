@@ -24,6 +24,8 @@ BACKENDS: dict[str, str] = {
     "pip": "installers.pip_installer",
 }
 
+APP_USER = "tomex"
+
 
 def _create_start_menu_shortcuts_wsl(distro: str | None) -> None:
     """Create Start Menu shortcuts to manage a WSL-backed Tomex install."""
@@ -41,12 +43,12 @@ def _create_start_menu_shortcuts_wsl(distro: str | None) -> None:
     stop_script = base / "stop-tomex.cmd"
     start_script.write_text(
         "@echo off\n"
-        f"wsl {distro_opt}-u root sh -lc \"~/start-tomex.sh\"\n",
+        f"wsl {distro_opt}-u {APP_USER} sh -lc \"/home/{APP_USER}/start-tomex.sh\"\n",
         encoding="utf-8",
     )
     stop_script.write_text(
         "@echo off\n"
-        f"wsl {distro_opt}-u root sh -lc \"~/stop-tomex.sh\"\n",
+        f"wsl {distro_opt}-u {APP_USER} sh -lc \"/home/{APP_USER}/stop-tomex.sh\"\n",
         encoding="utf-8",
     )
 
