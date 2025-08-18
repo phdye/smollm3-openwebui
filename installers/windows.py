@@ -772,6 +772,49 @@ def ensure_ffmpeg_in_container(container_name: str = "open-webui"):
 # Entrypoint
 # -----------------------------
 
+def uninstall(distro: str | None) -> None:
+    """Remove files, tasks and containers created by the installer."""
+    logger.info("Uninstalling Tomex...")
+
+    # Stop running processes
+    run(["taskkill", "/IM", "ollama.exe", "/F"], check=False)
+    run(["taskkill", "/IM", "open-webui.exe", "/F"], check=False)
+
+    # Delete scheduled tasks if present
+    for name in [
+        "Ollama Serve",
+        "Open WebUI (Docker)",
+        "Open WebUI (WSL)",
+        "Open WebUI",
+    ]:
+        run(["schtasks", "/Delete", "/TN", name, "/F"], check=False)
+
+    # Remove docker artifacts
+    if shutil.which("docker") is not None:
+        run(["docker", "rm", "-f", "open-webui"], check=False)
+        run(["docker", "rmi", "-f", "open-webui/open-webui:latest"], check=False)
+
+    # Clean up WSL environment
+    if distro:
+        run(["wsl", "-d", distro, "sh", "-lc", "pkill -f open-webui"], check=False)
+        run(["wsl", "-d", distro, "sh", "-lc", "rm -rf ~/.open-webui-venv"], check=False)
+
+    # Remove virtualenv and base directory
+    shutil.rmtree(OPENWEBUI_VENV, ignore_errors=True)
+    shutil.rmtree(BASE, ignore_errors=True)
+
+    # Remove Start Menu shortcuts
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        sm_dir = Path(appdata) / r"Microsoft\Windows\Start Menu\Programs\Tomex"
+        shutil.rmtree(sm_dir, ignore_errors=True)
+
+    # Remove custom model from Ollama
+    binp = str(OLLAMA_BIN if OLLAMA_BIN.exists() else (shutil.which("ollama") or OLLAMA_BIN))
+    run([binp, "rm", MODEL_NAME], check=False)
+
+    logger.info("Uninstall complete.")
+
 def install(argv: list[str] | None = None) -> None:
     """Run the Windows installer.
 
@@ -789,7 +832,16 @@ def install(argv: list[str] | None = None) -> None:
         metavar="DISTRO",
         help="Use a WSL distribution for Open WebUI instead of Docker/pip",
     )
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="remove Tomex and all installed components",
+    )
     args = parser.parse_args(argv)
+
+    if args.uninstall:
+        uninstall(args.wsl)
+        return
 
     log_file = setup_logging()
     logger.info(f"Install root: {BASE}")

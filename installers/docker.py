@@ -109,10 +109,52 @@ def create_scripts() -> None:
         stop.chmod(0o755)
 
 
+def remove_scripts() -> None:
+    """Remove helper scripts created by :func:`create_scripts`."""
+    home = Path.home()
+    for name in [
+        "start-tomex.ps1",
+        "stop-tomex.ps1",
+        "start-tomex.sh",
+        "stop-tomex.sh",
+    ]:
+        try:
+            (home / name).unlink()
+        except FileNotFoundError:
+            pass
+
+
+def uninstall() -> None:
+    """Remove containers, images and helper scripts."""
+    if shutil.which("docker") is not None:
+        for container in ["open-webui", "ollama"]:
+            try:
+                _run(["docker", "rm", "-f", container])
+            except Exception:
+                pass
+        for image in [
+            "ghcr.io/open-webui/open-webui:latest",
+            "ollama/ollama",
+        ]:
+            try:
+                _run(["docker", "rmi", "-f", image])
+            except Exception:
+                pass
+    remove_scripts()
+
+
 def install(argv: list[str] | None = None) -> None:
-    """Install the Tomex stack using Docker containers."""
+    """Install or uninstall the Tomex stack using Docker containers."""
     parser = argparse.ArgumentParser(description="Install Tomex using Docker")
-    parser.parse_args(argv)
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="remove Docker containers and helper scripts",
+    )
+    args = parser.parse_args(argv)
+    if args.uninstall:
+        uninstall()
+        return
 
     ensure_docker()
     ensure_ollama_container()
