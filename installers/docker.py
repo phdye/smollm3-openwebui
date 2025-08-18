@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Docker backend installer for Tomex.
 
 This installer provisions both Ollama and Open WebUI in Docker containers
@@ -106,4 +107,8 @@ def install(argv: list[str] | None = None) -> None:
     ensure_ollama_container()
     ensure_openwebui_container()
     create_scripts()
+
+
+if __name__ == "__main__":
+    install()
 

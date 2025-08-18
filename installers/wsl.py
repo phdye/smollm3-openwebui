@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """WSL backend installer for Tomex.
 
 This installer runs entirely inside a WSL distribution. It ensures that
@@ -96,3 +97,7 @@ def install(argv: list[str] | None = None) -> None:
     ensure_openwebui()
     create_scripts()
     start_stack()
+
+
+if __name__ == "__main__":
+    install()

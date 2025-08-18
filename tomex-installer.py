@@ -9,26 +9,16 @@ forwards command-line arguments to it. Each backend lives in the
 from __future__ import annotations
 
 import argparse
-import importlib
 import platform
 import subprocess
-from typing import Dict, Callable, List
-
-def _lazy(module: str) -> Callable[[List[str]], None]:
-    """Return a callable that imports ``module`` on demand and runs its
-    ``install`` function."""
-
-    def _runner(args: List[str]) -> None:
-        importlib.import_module(module).install(args)
-
-    return _runner
+import sys
 
 
-BACKENDS: Dict[str, Callable[[List[str]], None]] = {
-    "windows": _lazy("installers.windows"),
-    "wsl": _lazy("installers.wsl"),
-    "docker": _lazy("installers.docker"),
-    "pip": _lazy("installers.pip_installer"),
+BACKENDS: dict[str, str] = {
+    "windows": "installers.windows",
+    "wsl": "installers.wsl",
+    "docker": "installers.docker",
+    "pip": "installers.pip_installer",
 }
 
 
@@ -55,14 +45,17 @@ def main(argv: list[str] | None = None) -> None:
     if args.distro and backend != "wsl":
         parser.error("--distro is only valid with --backend wsl")
 
+    module = BACKENDS[backend]
+
     if backend == "wsl" and platform.system().lower() == "windows":
         cmd = ["wsl"]
         if args.distro:
             cmd += ["-d", args.distro]
-        cmd += ["python3", "-m", "installers.wsl", *remaining]
-        subprocess.run(cmd, check=True)
+        cmd += ["python3", "-m", module, *remaining]
     else:
-        BACKENDS[backend](remaining)
+        cmd = [sys.executable, "-m", module, *remaining]
+
+    subprocess.run(cmd, check=True)
 
 
 if __name__ == "__main__":

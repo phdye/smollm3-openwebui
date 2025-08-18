@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Python virtual environment backend installer for Tomex.
 
 This installer sets up Ollama and FFmpeg on the host system, creates a
@@ -89,3 +90,7 @@ def install(argv: list[str] | None = None) -> None:
     ensure_ffmpeg()
     ensure_openwebui(venv)
     create_scripts(venv)
+
+
+if __name__ == "__main__":
+    install()
