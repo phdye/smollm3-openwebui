@@ -18,7 +18,7 @@ smollm3-openwebui/
 ├── tomex-installer.py          # Front end that dispatches to a back‑end
 ├── installers/                 # Back‑end installers
 │   ├── windows.py              # Windows 11 native installer
-│   ├── wsl.py                  # Runs fully inside a WSL distribution
+│   ├── wsl.py                  # Runs Open WebUI in WSL while using host Ollama
 │   ├── docker.py               # Uses Docker containers for Ollama and WebUI
 │   └── pip_installer.py        # Pure Python virtual environment installer
 └── doc/                        # Documentation
@@ -106,18 +106,18 @@ The `install()` function orchestrates installation:
 6. Print connection information for the user【F:installers/windows.py†L775-L839】.
 
 ## WSL Back‑End (`installers/wsl.py`)
-The WSL installer runs entirely inside a distribution and performs a linear
-sequence of steps:
-1. Install Ollama if missing (`ensure_ollama`).
-2. Wait for the Ollama API and pull the `smollm3:3b` model (`ensure_model`).
-3. Install FFmpeg via `apt` (`ensure_ffmpeg`).
-4. Install Open WebUI using `pip` (`ensure_openwebui`).
-5. Generate `start-tomex.sh` and `stop-tomex.sh` in the home directory
-   (`create_scripts`).
-6. Launch the stack (`start_stack`)【F:installers/wsl.py†L1-L116】.
+The WSL installer provisions Open WebUI inside a distribution but leaves
+Ollama running on the Windows host so it can access the GPU directly. The
+script performs the following steps:
+1. Determine the Windows host IP and ensure the Ollama API is reachable.
+2. Install FFmpeg via `apt` (`ensure_ffmpeg`).
+3. Install Open WebUI using `pip` (`ensure_openwebui`).
+4. Generate `start-tomex.sh` and `stop-tomex.sh` in the home directory
+   (`create_scripts`), pointing Open WebUI at the host's Ollama service.
+5. Launch the stack (`start_stack`)【F:installers/wsl.py†L1-L116】.
 
-Each command is echoed before execution so that the user sees a blow‑by‑blow log
-of what happened.
+Each command is echoed before execution so that the user sees a blow‑by‑blow
+log of what happened.
 
 ## Docker Back‑End (`installers/docker.py`)
 The Docker installer provisions both services as containers:

@@ -35,7 +35,7 @@ For ease of use place the script in a directory without spaces in the path.
    ```
 
 ### Command‑line Options
-- `--wsl [<distro-name>]` – runs Open WebUI inside the default WSL distribution or the one specified.  This is useful when Docker is not available.  Specify a distribution name returned by `wsl -l` when targeting a non-default distro.
+- `--wsl [<distro-name>]` – runs Open WebUI inside the default WSL distribution or the one specified while keeping Ollama on the Windows host so it can access the GPU.  This is useful when Docker is not available.  Specify a distribution name returned by `wsl -l` when targeting a non-default distro.
 
 ### What Happens During Installation
 1. **Directory preparation** – all files live under `%LOCALAPPDATA%\smollm3_stack`.
@@ -43,7 +43,7 @@ For ease of use place the script in a directory without spaces in the path.
 3. **SmolLM3‑3B model** – the GGUF model and an accompanying Modelfile are stored in `%LOCALAPPDATA%\smollm3_stack\models`.  The model is imported into Ollama as `smollm3-local` with context and GPU parameters tuned for local use.
 4. **Open WebUI** – preference order:
    - Docker container named `open-webui`.
-   - WSL virtual environment (when `--wsl` is supplied, optionally with a distribution name).
+   - WSL virtual environment (when `--wsl` is supplied, optionally with a distribution name). Ollama continues running on Windows so it can access the GPU.
    - Python virtual environment in `%LOCALAPPDATA%\smollm3_stack\openwebui-venv`.
    Autostart is configured through a scheduled task so the interface is available after each login, and the services are started immediately after installation.
 5. **FFmpeg** – installed inside the Docker container, inside WSL, or on the host depending on how Open WebUI is executed.
