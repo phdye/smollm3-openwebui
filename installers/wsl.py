@@ -75,13 +75,21 @@ def ensure_ollama() -> None:
 def ensure_model() -> None:
     """Download the SmolLM3 model."""
     print("Fetching SmolLM3 model...", flush=True)
+    if shutil.which("ollama") is None:
+        raise RuntimeError("Ollama executable not found; ensure installation succeeded")
+
     server: subprocess.Popen[str] | None = None
     if not _ollama_running():
-        server = subprocess.Popen(
-            ["ollama", "serve"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        try:
+            server = subprocess.Popen(
+                ["ollama", "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except FileNotFoundError as exc:
+            raise RuntimeError(
+                "Ollama executable not found; ensure installation succeeded"
+            ) from exc
     _wait_for_ollama()
     _run(["ollama", "pull", "smollm3:3b"])
     if server is not None:
