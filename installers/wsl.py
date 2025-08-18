@@ -70,7 +70,6 @@ def ensure_tomex_user() -> None:
     if res.returncode != 0:
         _run(
             [
-                "sudo",
                 "useradd",
                 "--system",
                 "--create-home",
@@ -124,8 +123,8 @@ def ensure_ffmpeg() -> None:
     """Ensure FFmpeg is installed via apt."""
     print("Checking for FFmpeg...", flush=True)
     if shutil.which("ffmpeg") is None:
-        _run(["sudo", "apt-get", "update"])
-        _run(["sudo", "apt-get", "install", "-y", "ffmpeg"])
+        _run(["apt-get", "update"])
+        _run(["apt-get", "install", "-y", "ffmpeg"])
     else:
         print("FFmpeg already present", flush=True)
 
@@ -135,9 +134,10 @@ def ensure_openwebui() -> None:
     print("Installing/upgrading Open WebUI...", flush=True)
     _run(
         [
-            "sudo",
+            "runuser",
             "-u",
             "tomex",
+            "--",
             "bash",
             "-lc",
             "python3 -m pip install --upgrade --user open-webui",
@@ -156,7 +156,7 @@ def create_scripts() -> None:
         "$HOME/.local/bin/open-webui --host 0.0.0.0 &\n"
     )
     start.chmod(0o755)
-    _run(["sudo", "chown", "tomex:tomex", str(start)])
+    _run(["chown", "tomex:tomex", str(start)])
 
     stop = home / "stop-tomex.sh"
     stop.write_text(
@@ -165,14 +165,14 @@ def create_scripts() -> None:
         "pkill -f 'ollama serve'\n"
     )
     stop.chmod(0o755)
-    _run(["sudo", "chown", "tomex:tomex", str(stop)])
+    _run(["chown", "tomex:tomex", str(stop)])
 
 
 def start_stack() -> None:
     """Start the Tomex stack using the helper script."""
     print("Starting Tomex...", flush=True)
     start = Path("/opt/tomex") / "start-tomex.sh"
-    _run(["sudo", "-u", "tomex", str(start)])
+    _run(["runuser", "-u", "tomex", "--", str(start)])
 
 
 def install(argv: list[str] | None = None) -> None:
