@@ -90,11 +90,51 @@ def create_scripts(venv: Path) -> None:
         stop.chmod(0o755)
 
 
+def remove_scripts() -> None:
+    home = Path.home()
+    for name in [
+        "start-tomex.ps1",
+        "stop-tomex.ps1",
+        "start-tomex.sh",
+        "stop-tomex.sh",
+    ]:
+        try:
+            (home / name).unlink()
+        except FileNotFoundError:
+            pass
+
+
+def uninstall(venv: Path) -> None:
+    """Remove the virtual environment and helper artifacts."""
+    if venv.exists():
+        shutil.rmtree(venv, ignore_errors=True)
+    remove_scripts()
+    try:
+        _run(["ollama", "rm", "smollm3:3b"])
+    except Exception:
+        pass
+    if os.name == "nt":
+        for pkg in ["Ollama.Ollama", "Gyan.FFmpeg"]:
+            try:
+                _run(["winget", "uninstall", "--id", pkg, "-e", "--silent"])
+            except Exception:
+                pass
+
+
 def install(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Install Tomex using pip/venv")
-    parser.parse_args(argv)
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="remove the Tomex stack",
+    )
+    args = parser.parse_args(argv)
 
     venv = Path.home() / "tomex-venv"
+
+    if args.uninstall:
+        uninstall(venv)
+        return
 
     ensure_ollama()
     ensure_model()

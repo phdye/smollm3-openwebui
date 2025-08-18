@@ -141,10 +141,33 @@ def start_stack(home: Path) -> None:
     _run(["sudo", "-u", APP_USER, str(start)])
 
 
+def uninstall() -> None:
+    """Remove the Tomex stack from this WSL distribution."""
+    print("Uninstalling Tomex...", flush=True)
+    for cmd in [
+        ["sudo", "pkill", "-f", "open-webui"],
+        ["sudo", "userdel", "-r", APP_USER],
+        ["sudo", "apt-get", "remove", "-y", "ffmpeg"],
+    ]:
+        try:
+            _run(cmd)
+        except Exception:
+            pass
+
+
 def install(argv: list[str] | None = None) -> None:
-    """Install the Tomex stack inside the current WSL distribution."""
+    """Install or uninstall the Tomex stack inside the current WSL distribution."""
     parser = argparse.ArgumentParser(description="Install Tomex inside WSL")
-    parser.parse_args(argv)
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="remove the Tomex stack from this distribution",
+    )
+    args = parser.parse_args(argv)
+
+    if args.uninstall:
+        uninstall()
+        return
 
     host_ip = _windows_host_ip()
     ensure_host_ollama(host_ip)

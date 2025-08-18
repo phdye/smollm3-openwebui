@@ -31,6 +31,13 @@ chosen backend. For example:
 - `--backend docker` runs Open WebUI in a Docker container.
 - `--backend pip` uses a local Python virtual environment.
 
+All backends support an `--uninstall` option to remove any previously installed
+components. For example, to remove a Docker-based setup:
+
+```powershell
+python tomex-installer.py --backend docker --uninstall
+```
+
 After installation the Tomex stack is started automatically. The script can be re-run safely and will skip steps that are already complete. Logs are written to `%LOCALAPPDATA%\tomex\logs`.
 
 ## Repository structure
