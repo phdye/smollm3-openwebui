@@ -108,13 +108,15 @@ The `install()` function orchestrates installation:
 ## WSL Back‑End (`installers/wsl.py`)
 The WSL installer runs entirely inside a distribution and performs a linear
 sequence of steps:
-1. Install Ollama if missing (`ensure_ollama`).
-2. Wait for the Ollama API and pull the `smollm3:3b` model (`ensure_model`).
-3. Install FFmpeg via `apt` (`ensure_ffmpeg`).
-4. Install Open WebUI using `pip` (`ensure_openwebui`).
-5. Generate `start-tomex.sh` and `stop-tomex.sh` in the home directory
+1. Create a dedicated `tomex` system user with the home directory `/opt/tomex`
+   (`ensure_tomex_user`).
+2. Install Ollama if missing (`ensure_ollama`).
+3. Wait for the Ollama API and pull the `smollm3:3b` model (`ensure_model`).
+4. Install FFmpeg via `apt` (`ensure_ffmpeg`).
+5. Install Open WebUI for the `tomex` user using `pip` (`ensure_openwebui`).
+6. Generate `start-tomex.sh` and `stop-tomex.sh` in `/opt/tomex`
    (`create_scripts`).
-6. Launch the stack (`start_stack`)【F:installers/wsl.py†L1-L116】.
+7. Launch the stack as the `tomex` user (`start_stack`)【F:installers/wsl.py†L1-L116】.
 
 Each command is echoed before execution so that the user sees a blow‑by‑blow log
 of what happened.
